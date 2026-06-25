@@ -1,0 +1,299 @@
+/* ============================================================
+   墨韵 · 全局样式系统
+   现代编辑/杂志风格 × 东方水墨意境
+   ============================================================ */
+
+:root {
+  /* —— 色彩系统 —— */
+  --ink-black: #0a0a0f;
+  --ink-deep: #12121a;
+  --ink-soft: #1a1a24;
+  --ink-line: #2a2a36;
+
+  --moon-white: #f5f1e8;
+  --moon-dim: #c9c4b8;
+  --moon-faint: #8a8678;
+
+  --amber: #d4a574;
+  --amber-bright: #e8bd8a;
+  --amber-deep: #b8895a;
+
+  --celadon: #7ba89c;
+  --cinnabar: #c8553d;
+
+  /* —— 语义令牌 —— */
+  --bg: var(--ink-black);
+  --bg-elevated: var(--ink-deep);
+  --bg-card: var(--ink-soft);
+  --border: var(--ink-line);
+  --text: var(--moon-white);
+  --text-dim: var(--moon-dim);
+  --text-faint: var(--moon-faint);
+  --accent: var(--amber);
+  --accent-hover: var(--amber-bright);
+
+  /* —— 字体系统 —— */
+  --font-serif: 'Noto Serif SC', 'Songti SC', serif;
+  --font-sans: 'Noto Sans SC', -apple-system, sans-serif;
+  --font-display: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+
+  /* —— 字号阶 —— */
+  --fs-hero: clamp(4rem, 12vw, 10rem);
+  --fs-h1: clamp(2.5rem, 5vw, 4rem);
+  --fs-h2: clamp(2rem, 3.5vw, 2.75rem);
+  --fs-h3: clamp(1.5rem, 2vw, 1.75rem);
+  --fs-body: 1rem;
+  --fs-small: 0.875rem;
+  --fs-tiny: 0.75rem;
+
+  /* —— 间距 —— */
+  --space-section: clamp(5rem, 12vh, 9rem);
+  --container: 1200px;
+  --container-pad: clamp(1.5rem, 5vw, 3rem);
+
+  /* —— 圆角 —— */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+
+  /* —— 过渡 —— */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur: 0.4s;
+}
+
+/* —— 重置 —— */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* 背景纹理：细微噪点 + 径向光晕 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(212, 165, 116, 0.08), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(123, 168, 156, 0.05), transparent 60%);
+  pointer-events: none;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  opacity: 0.025;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--dur) var(--ease);
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+/* —— 排版工具 —— */
+.font-serif { font-family: var(--font-serif); }
+.font-display { font-family: var(--font-display); }
+.font-mono { font-family: var(--font-mono); }
+
+.text-accent { color: var(--accent); }
+.text-dim { color: var(--text-dim); }
+.text-faint { color: var(--text-faint); }
+
+/* —— 容器 —— */
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 var(--container-pad);
+}
+
+/* —— 区块通用 —— */
+.section {
+  padding: var(--space-section) 0;
+  position: relative;
+}
+
+.section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1.5rem;
+}
+
+.section-label::before {
+  content: '';
+  width: 2rem;
+  height: 1px;
+  background: var(--accent);
+}
+
+.section-title {
+  font-family: var(--font-serif);
+  font-size: var(--fs-h2);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+}
+
+.section-subtitle {
+  font-size: var(--fs-body);
+  color: var(--text-dim);
+  max-width: 48ch;
+  line-height: 1.8;
+}
+
+/* —— 按钮 —— */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.875rem 1.75rem;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  border-radius: var(--radius-sm);
+  transition: all var(--dur) var(--ease);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--ink-black);
+  box-shadow: 0 4px 20px -8px rgba(212, 165, 116, 0.5);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px -8px rgba(212, 165, 116, 0.6);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* —— 滚动渐入动画 —— */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition:
+    opacity 0.9s var(--ease-out),
+    transform 0.9s var(--ease-out);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+
+/* —— 选区 —— */
+::selection {
+  background: var(--accent);
+  color: var(--ink-black);
+}
+
+/* —— 滚动条 —— */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ink-deep);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ink-line);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--amber-deep);
+}
+
+/* —— 响应式 —— */
+@media (max-width: 768px) {
+  :root {
+    --space-section: 4rem;
+  }
+}
+
+/* —— 减少动画偏好 —— */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
