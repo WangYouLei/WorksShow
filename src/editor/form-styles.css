@@ -1,0 +1,189 @@
+/* 编辑器表单通用样式（ef- 前缀，避免与墨韵主题 class 冲突） */
+
+.ef-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.ef-field > span {
+  font-size: 12px;
+  color: rgba(245, 241, 232, 0.5);
+}
+.ef-input,
+.ef-textarea,
+.ef-select {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #f5f1e8;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(212, 165, 116, 0.2);
+  border-radius: 4px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+.ef-input:focus,
+.ef-textarea:focus,
+.ef-select:focus {
+  border-color: #d4a574;
+}
+.ef-textarea {
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.6;
+}
+.ef-section {
+  margin-bottom: 24px;
+}
+.ef-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.ef-section-head h4 {
+  margin: 0;
+  font-size: 13px;
+  color: #d4a574;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+.ef-add-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  color: #d4a574;
+  background: transparent;
+  border: 1px solid rgba(212, 165, 116, 0.4);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.ef-add-btn:hover {
+  background: rgba(212, 165, 116, 0.1);
+}
+.ef-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+.ef-row-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.ef-remove-btn {
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #c8553d;
+  background: transparent;
+  border: 1px solid rgba(200, 85, 61, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease;
+}
+.ef-remove-btn:hover {
+  background: rgba(200, 85, 61, 0.1);
+}
+.ef-item {
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(212, 165, 116, 0.12);
+  border-radius: 6px;
+}
+.ef-item > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ef-item > summary::-webkit-details-marker {
+  display: none;
+}
+.ef-item-title {
+  font-size: 13px;
+  color: #f5f1e8;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ef-item-meta {
+  font-size: 11px;
+  color: rgba(245, 241, 232, 0.4);
+  flex-shrink: 0;
+}
+.ef-item-body {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(212, 165, 116, 0.1);
+}
+.ef-item-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.ef-move-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  color: rgba(245, 241, 232, 0.6);
+  background: transparent;
+  border: 1px solid rgba(245, 241, 232, 0.15);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ef-move-btn:hover {
+  color: #d4a574;
+  border-color: #d4a574;
+}
+.ef-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(245, 241, 232, 0.7);
+  cursor: pointer;
+}
+.ef-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 20px;
+  border-bottom: 1px solid rgba(212, 165, 116, 0.15);
+  flex-shrink: 0;
+}
+.ef-tab {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: rgba(245, 241, 232, 0.5);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ef-tab:hover {
+  color: #f5f1e8;
+}
+.ef-tab.is-active {
+  color: #d4a574;
+  border-bottom-color: #d4a574;
+}
+.ef-panel {
+  padding: 20px;
+}
+.ef-empty {
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(245, 241, 232, 0.3);
+}
