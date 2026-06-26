@@ -26,8 +26,11 @@ const useTemplate = (id: string) => {
         class="template-card"
         @click="useTemplate(t.id)"
       >
-        <div class="card-cover">
-          <img :src="t.cover" :alt="t.name" loading="lazy" />
+        <div class="card-cover" :class="'cover-' + t.id">
+          <img v-if="t.cover" :src="t.cover" :alt="t.name" loading="lazy" />
+          <div v-else class="cover-placeholder">
+            <span class="cover-name">{{ t.name }}</span>
+          </div>
           <span class="card-badge">模板</span>
         </div>
         <div class="card-body">
@@ -105,6 +108,39 @@ const useTemplate = (id: string) => {
 }
 .template-card:hover .card-cover img {
   transform: scale(1.05);
+}
+.cover-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.cover-name {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  opacity: 0.85;
+}
+.cover-mo-yun {
+  background: linear-gradient(135deg, #0a0a0f 0%, #2a2418 55%, #d4a574 130%);
+}
+.cover-mo-yun .cover-name {
+  color: #f5f1e8;
+}
+.cover-pastel {
+  background: linear-gradient(135deg, #f6dcdc 0%, #f4ede4 50%, #dceee4 120%);
+}
+.cover-pastel .cover-name {
+  color: #3d3536;
+}
+.cover-aurora {
+  background:
+    radial-gradient(circle at 75% 25%, rgba(129, 140, 248, 0.45), transparent 55%),
+    radial-gradient(circle at 20% 80%, rgba(56, 189, 248, 0.35), transparent 55%),
+    linear-gradient(135deg, #050507 0%, #0a0a0f 100%);
+}
+.cover-aurora .cover-name {
+  color: #ffffff;
 }
 .card-badge {
   position: absolute;

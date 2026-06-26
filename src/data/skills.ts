@@ -3,26 +3,26 @@ import type { Skill } from './types'
 export const skills: Skill[] = [
   {
     id: 's1',
-    category: '前端工程',
+    category: '前端开发',
     categoryEn: 'Frontend',
-    items: ['Vue 3', 'React', 'TypeScript', 'Vite', 'Nuxt', 'CSS 动效', 'WebGL'],
+    items: ['React', 'Next.js', 'TypeScript', 'Tailwind CSS', 'Motion', 'Three.js'],
   },
   {
     id: 's2',
-    category: '设计能力',
-    categoryEn: 'Design',
-    items: ['UI 设计', 'UX 研究', '品牌视觉', '插画', '排版设计', '设计系统'],
+    category: '后端开发',
+    categoryEn: 'Backend',
+    items: ['Node.js', 'Python', 'FastAPI', 'GraphQL', 'Prisma', 'tRPC'],
   },
   {
     id: 's3',
-    category: '工程化',
-    categoryEn: 'Engineering',
-    items: ['Node.js', 'Electron', 'Monorepo', 'CI/CD', '性能优化', '可访问性'],
+    category: 'AI 开发',
+    categoryEn: 'AI',
+    items: ['OpenAI API', 'LangChain', 'Pinecone', 'Hugging Face', 'Replicate', 'Vercel AI SDK'],
   },
   {
     id: 's4',
-    category: '工具与协作',
-    categoryEn: 'Tools',
-    items: ['Figma', 'Blender', 'Git', 'Notion', 'Linear', '设计走查'],
+    category: '基础设施',
+    categoryEn: 'Infrastructure',
+    items: ['Supabase', 'PostgreSQL', 'Redis', 'Docker', 'Cloudflare', 'Vercel'],
   },
 ]

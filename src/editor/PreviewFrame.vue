@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import MoYunPreview from '@/templates/mo-yun/MoYunPreview.vue'
+import { computed } from 'vue'
+import { getTemplatePreviewComponent } from '@/templates/registry'
 import type { PortfolioData } from '@/templates/types'
 
-defineProps<{ data: PortfolioData }>()
+const props = defineProps<{ data: PortfolioData; templateId: string }>()
+const Comp = computed(() => getTemplatePreviewComponent(props.templateId))
 </script>
 
 <template>
   <div class="preview-shell">
-    <MoYunPreview :data="data" />
+    <component :is="Comp" v-if="Comp" :data="data" />
+    <div v-else class="preview-empty">模板未找到：{{ templateId }}</div>
   </div>
 </template>
 
@@ -27,5 +30,12 @@ defineProps<{ data: PortfolioData }>()
   opacity: 1 !important;
   transform: none !important;
   transition: none !important;
+}
+.preview-empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: rgba(245, 241, 232, 0.5);
+  font-size: 14px;
 }
 </style>
