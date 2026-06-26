@@ -54,6 +54,3 @@ npm run check
 
 项目支持模板扩展，模板位于 `src/templates/` 目录下。当前包含 `mo-yun` 模板。
 
-## License
-
-MIT
