@@ -34,7 +34,7 @@ const onExport = async () => {
   if (exporting.value) return
   exporting.value = true
   try {
-    await downloadPortfolioHtml(store)
+    await downloadPortfolioHtml(store, props.templateId)
   } catch (e) {
     console.error(e)
     alert('导出失败：' + (e as Error).message)
@@ -84,7 +84,7 @@ const onExport = async () => {
         </div>
       </aside>
       <section class="editor-preview">
-        <PreviewFrame :data="store" />
+        <PreviewFrame :data="store" :template-id="props.templateId" />
       </section>
     </div>
   </div>
