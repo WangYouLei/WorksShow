@@ -11,10 +11,9 @@ const profile = portfolio?.profile ?? defaultProfile
   <section id="about" class="section about">
     <div class="container">
       <div class="about-grid">
-        <!-- 左：头像 -->
+        <!-- 左：名片 -->
         <div class="about-portrait reveal">
           <div class="portrait-frame">
-            <img :src="profile.avatar" :alt="profile.name" loading="lazy" />
             <span class="portrait-tag font-mono">{{ profile.nameEn }}</span>
           </div>
           <div class="portrait-meta">
@@ -70,57 +69,24 @@ const profile = portfolio?.profile ?? defaultProfile
   align-items: start;
 }
 
-/* —— 头像 —— */
+/* —— 名片 —— */
 .portrait-frame {
   position: relative;
-  aspect-ratio: 4 / 5;
   border-radius: var(--radius-md);
-  overflow: hidden;
   border: 1px solid var(--border);
+  background: var(--bg-card);
+  padding: 1.5rem;
+  transition: border-color var(--dur) var(--ease);
 }
 
-.portrait-frame::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  z-index: 2;
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-md);
-  opacity: 0;
-  transform: scale(1.04);
-  transition: all 0.6s var(--ease);
-  pointer-events: none;
-}
-
-.portrait-frame:hover::before {
-  opacity: 0.5;
-  transform: scale(1);
-}
-
-.portrait-frame img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: grayscale(0.15) contrast(1.05);
-  transition: filter 0.8s var(--ease);
-}
-
-.portrait-frame:hover img {
-  filter: grayscale(0) contrast(1);
+.portrait-frame:hover {
+  border-color: var(--accent);
 }
 
 .portrait-tag {
-  position: absolute;
-  bottom: 1rem;
-  left: 1rem;
-  z-index: 2;
   font-size: var(--fs-tiny);
   letter-spacing: 0.2em;
-  color: var(--moon-white);
-  background: rgba(10, 10, 15, 0.6);
-  padding: 0.375rem 0.75rem;
-  border-radius: var(--radius-sm);
-  backdrop-filter: blur(4px);
+  color: var(--text-dim);
 }
 
 .portrait-meta {

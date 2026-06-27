@@ -24,7 +24,6 @@ const removeSocial = (i: number) => store.profile.socials.splice(i, 1)
       <label class="ef-field"><span>职位 / 方向</span><input v-model="store.profile.title" class="ef-input" type="text" /></label>
       <label class="ef-field"><span>标语</span><input v-model="store.profile.tagline" class="ef-input" type="text" /></label>
       <label class="ef-field"><span>个人简介</span><textarea v-model="store.profile.bio" class="ef-textarea"></textarea></label>
-      <label class="ef-field"><span>头像 URL</span><input v-model="store.profile.avatar" class="ef-input" type="text" /></label>
       <div class="ef-row-two">
         <label class="ef-field"><span>邮箱</span><input v-model="store.profile.email" class="ef-input" type="text" /></label>
         <label class="ef-field"><span>所在地</span><input v-model="store.profile.location" class="ef-input" type="text" /></label>

@@ -1,0 +1,71 @@
+# ============================================================
+# WorksShow 后端配置
+# ============================================================
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: worksshow-backend
+  # 数据源配置 - 请根据本地 MySQL 实际情况修改 username / password
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/works_show?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+    # 生产环境务必通过环境变量 DB_USERNAME / DB_PASSWORD 注入,使用最小权限账号
+    username: root
+    password: 123456
+  # JSON 序列化: 统一返回 GMT+8 时区
+  jackson:
+    time-zone: GMT+8
+    date-format: yyyy-MM-dd HH:mm:ss
+  # 邮件配置 - 用于发送邮箱验证码
+  # 请填入实际的邮箱 SMTP 信息(以 QQ 邮箱为例,其他邮箱修改 host 即可):
+  #   1. QQ 邮箱: host=smtp.qq.com, password 为授权码(非登录密码)
+  #   2. 163 邮箱: host=smtp.163.com
+  #   3. Gmail: host=smtp.gmail.com
+  # 也可通过环境变量 MAIL_HOST / MAIL_USERNAME / MAIL_PASSWORD 注入
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: ${QQ_mail}
+    password: ${QQ_SMTP/IMAP}
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+# Mybatis-Plus 配置
+mybatis-plus:
+  configuration:
+    # SQL 日志: 开发期输出到控制台,生产环境请改为 slf4j 或关闭
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      # 主键策略: 数据库自增(配合 user 表 AUTO_INCREMENT)
+      id-type: AUTO
+      # 逻辑删除字段配置
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  # Mapper XML 路径(本工程使用注解开发,预留扩展)
+  mapper-locations: classpath*:/mapper/**/*.xml
+
+# 自定义 JWT 配置
+jwt:
+  # 签名密钥(Base64 编码),生产环境务必通过环境变量 JWT_SECRET 注入强随机密钥
+  secret: d29ya3Nob3ctc2VjcmV0LWtleS1mb3Itand0LXNpZ25pbmctMjAyNg==
+  # token 有效期(毫秒): 24 小时
+  expiration: 86400000
+
+logging:
+  level:
+    com.worksshow: debug

@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { templates } from '@/templates/registry'
 
 const router = useRouter()
+const isLoggedIn = computed(() => !!localStorage.getItem('works-show:token'))
 
 const useTemplate = (id: string) => {
   router.push({ name: 'editor', params: { templateId: id } })
@@ -11,6 +13,12 @@ const useTemplate = (id: string) => {
 
 <template>
   <div class="gallery">
+    <!-- 右上角固定按钮 -->
+    <div class="top-right-actions">
+      <button v-if="isLoggedIn" class="account-link" @click="router.push('/account')">账号管理</button>
+      <button v-else class="account-link" @click="router.push('/login')">登录 / 注册</button>
+    </div>
+
     <header class="gallery-header">
       <h1>选择一个模板开始</h1>
       <p>
@@ -57,6 +65,25 @@ const useTemplate = (id: string) => {
   max-width: 720px;
   margin: 0 auto 56px;
   text-align: center;
+}
+.top-right-actions {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 100;
+}
+.account-link {
+  padding: 8px 16px;
+  font-size: 13px;
+  color: #d4a574;
+  background: rgba(212, 165, 116, 0.1);
+  border: 1px solid rgba(212, 165, 116, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.account-link:hover {
+  background: rgba(212, 165, 116, 0.2);
 }
 .gallery-header h1 {
   font-size: clamp(32px, 5vw, 52px);
