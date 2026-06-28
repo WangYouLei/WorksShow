@@ -12,6 +12,10 @@ import { auroraMeta } from './aurora/meta'
 import { getAuroraDefaultData } from './aurora/defaultData'
 import { exportAuroraHtml } from './aurora/exportTemplate'
 import AuroraPreview from './aurora/AuroraPreview.vue'
+import { dawnMeta } from './dawn/meta'
+import { getDawnDefaultData } from './dawn/defaultData'
+import { exportDawnHtml } from './dawn/exportTemplate'
+import DawnPreview from './dawn/DawnPreview.vue'
 
 /** 模板完整注册项（含默认数据获取器、预览组件、导出函数） */
 interface TemplateEntry extends TemplateMeta {
@@ -38,6 +42,12 @@ const registry: Record<string, TemplateEntry> = {
     getDefaultData: getAuroraDefaultData,
     PreviewComponent: AuroraPreview,
     exportHtml: exportAuroraHtml,
+  },
+  'dawn': {
+    ...dawnMeta,
+    getDefaultData: getDawnDefaultData,
+    PreviewComponent: DawnPreview,
+    exportHtml: exportDawnHtml,
   },
 }
 

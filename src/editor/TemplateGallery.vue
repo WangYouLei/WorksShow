@@ -169,6 +169,14 @@ const useTemplate = (id: string) => {
 .cover-aurora .cover-name {
   color: #ffffff;
 }
+.cover-dawn {
+  background:
+    radial-gradient(circle at 70% 30%, rgba(194, 65, 12, 0.12), transparent 55%),
+    linear-gradient(135deg, #faf8f4 0%, #f3efe7 100%);
+}
+.cover-dawn .cover-name {
+  color: #1c1c1a;
+}
 .card-badge {
   position: absolute;
   top: 12px;
