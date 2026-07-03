@@ -1,4 +1,5 @@
 import axios from 'axios'
+import router from '@/router'
 
 /**
  * Axios 请求实例
@@ -40,9 +41,8 @@ request.interceptors.response.use(
       // token 失效,清除并跳登录
       localStorage.removeItem('works-show:token')
       localStorage.removeItem('works-show:user')
-      if (window.location.hash !== '#/login') {
-        window.location.hash = '#/login'
-      }
+      // 使用 Vue Router 跳转,避免直接操作 window.location
+      router.push('/login').catch(() => {})
     }
     const msg = error.response?.data?.message || error.message || '网络错误'
     return Promise.reject(new Error(msg))

@@ -34,7 +34,7 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
     private final ObjectMapper objectMapper;
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         // 放行 CORS 预检请求
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return true;
@@ -49,7 +49,7 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        Long userId = Long.parseLong(claims.getSubject());
+        Long userId = jwtUtils.getUserId(claims);
         // 查库校验用户当前状态:getById 受 @TableLogic 影响,逻辑删除的用户返回 null
         User user = userService.getById(userId);
         if (user == null || user.getStatus() == null || user.getStatus() == 0) {
@@ -59,7 +59,7 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
         }
 
         // 解析用户信息并放入上下文
-        String nickname = claims.get("nickname", String.class);
+        String nickname = jwtUtils.getNickname(claims);
         UserContext.set(new UserContext.LoginUser(userId, nickname));
         log.debug("认证通过, userId={}, nickname={}", userId, nickname);
         return true;
@@ -85,9 +85,15 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
     /**
      * 写出 401 响应
      */
-    private void writeUnauthorized(HttpServletResponse response, String message) throws Exception {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write(objectMapper.writeValueAsString(Result.fail(401, message)));
+    private void writeUnauthorized(HttpServletResponse response, String message) {
+        try {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            try (var writer = response.getWriter()) {
+                writer.write(objectMapper.writeValueAsString(Result.fail(401, message)));
+            }
+        } catch (Exception e) {
+            log.error("写入 401 响应失败", e);
+        }
     }
 }

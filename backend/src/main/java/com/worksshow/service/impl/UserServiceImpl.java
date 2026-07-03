@@ -38,9 +38,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     private final JwtUtils jwtUtils;
     private final EmailCodeService emailCodeService;
-
-    /** BCrypt 密码编码器(默认强度 10) */
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final BCryptPasswordEncoder passwordEncoder;
 
     /**
      * 用户注册
@@ -93,7 +91,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .and(wrapper -> wrapper
                         .eq(User::getEmail, request.getAccount())
                         .or()
-                        .eq(User::getPhone, request.getAccount())));
+                        .eq(User::getPhone, request.getAccount()))
+                .last("LIMIT 1"));
         if (user == null) {
             // 出于安全,用户不存在与密码错误返回相同提示,避免账号枚举
             log.warn("登录失败,账号不存在: {}", request.getAccount());

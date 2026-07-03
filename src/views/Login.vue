@@ -21,11 +21,20 @@ const forgotForm = reactive<ResetPasswordData & { confirm: string }>({
 const codeCountdown = ref(0)
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 
-const onSubmit = async () => {
-  if (!form.account || !form.password) {
-    error.value = '请输入账号和密码'
-    return
+const validateLoginForm = (): boolean => {
+  if (!form.account.trim()) {
+    error.value = '请输入账号'
+    return false
   }
+  if (!form.password.trim()) {
+    error.value = '请输入密码'
+    return false
+  }
+  return true
+}
+
+const onSubmit = async () => {
+  if (!validateLoginForm()) return
   loading.value = true
   error.value = ''
   try {
@@ -68,19 +77,36 @@ const onSendForgotCode = async () => {
   }
 }
 
-const onResetPassword = async () => {
-  if (!forgotForm.email || !forgotForm.code || !forgotForm.newPassword) {
-    error.value = '请填写完整'
-    return
+const validateResetPasswordForm = (): boolean => {
+  if (!forgotForm.email.trim()) {
+    error.value = '请输入邮箱'
+    return false
+  }
+  if (!forgotForm.code.trim()) {
+    error.value = '请输入验证码'
+    return false
+  }
+  if (!forgotForm.newPassword.trim()) {
+    error.value = '请输入新密码'
+    return false
+  }
+  if (!forgotForm.confirm.trim()) {
+    error.value = '请确认新密码'
+    return false
   }
   if (forgotForm.newPassword !== forgotForm.confirm) {
     error.value = '两次输入的新密码不一致'
-    return
+    return false
   }
   if (forgotForm.newPassword.length < 6) {
     error.value = '新密码至少 6 个字符'
-    return
+    return false
   }
+  return true
+}
+
+const onResetPassword = async () => {
+  if (!validateResetPasswordForm()) return
   loading.value = true
   error.value = ''
   success.value = ''

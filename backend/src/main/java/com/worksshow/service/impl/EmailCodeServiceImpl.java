@@ -128,6 +128,7 @@ public class EmailCodeServiceImpl implements EmailCodeService {
 
     @Override
     public void verifyCode(String email, String code) {
+        long now = System.currentTimeMillis();
         CodeEntry entry = codeStore.get(email);
 
         // 未发送验证码
@@ -137,7 +138,7 @@ public class EmailCodeServiceImpl implements EmailCodeService {
         }
 
         // 已过期
-        if (System.currentTimeMillis() > entry.expireTime()) {
+        if (now > entry.expireTime()) {
             codeStore.remove(email);
             log.warn("验证码校验失败,已过期: email={}", email);
             throw new BusinessException(400, "验证码已过期,请重新获取");
@@ -149,8 +150,13 @@ public class EmailCodeServiceImpl implements EmailCodeService {
             throw new BusinessException(400, "验证码错误");
         }
 
-        // 验证成功,移除验证码(一次性使用)
-        codeStore.remove(email);
+        // 验证成功,原子性移除验证码(一次性使用)
+        // 使用 remove(key, value) 确保移除的是当前校验的那个条目,防止并发竞态
+        boolean removed = codeStore.remove(email, entry);
+        if (!removed) {
+            log.warn("验证码校验异常: 并发重复验证,email={}", email);
+            throw new BusinessException(400, "验证码已使用");
+        }
         log.info("验证码校验成功: email={}", email);
     }
 

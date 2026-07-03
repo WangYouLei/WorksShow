@@ -98,16 +98,30 @@ public class JwtUtils {
     }
 
     /**
-     * 从 token 中获取用户ID
+     * 从 token 中获取用户ID(解析整个 token)
      */
     public Long getUserId(String token) {
-        return Long.parseLong(parseToken(token).getSubject());
+        return parseToken(token).getSubject() != null ? Long.parseLong(parseToken(token).getSubject()) : null;
     }
 
     /**
-     * 从 token 中获取昵称
+     * 从已解析的 Claims 中获取用户ID(避免重复解析)
+     */
+    public Long getUserId(Claims claims) {
+        return claims != null && claims.getSubject() != null ? Long.parseLong(claims.getSubject()) : null;
+    }
+
+    /**
+     * 从 token 中获取昵称(解析整个 token)
      */
     public String getNickname(String token) {
         return parseToken(token).get("nickname", String.class);
+    }
+
+    /**
+     * 从已解析的 Claims 中获取昵称(避免重复解析)
+     */
+    public String getNickname(Claims claims) {
+        return claims != null ? claims.get("nickname", String.class) : null;
     }
 }
