@@ -16,6 +16,10 @@ import { dawnMeta } from './dawn/meta'
 import { getDawnDefaultData } from './dawn/defaultData'
 import { exportDawnHtml } from './dawn/exportTemplate'
 import DawnPreview from './dawn/DawnPreview.vue'
+import { brutalMeta } from './brutal/meta'
+import { getBrutalDefaultData } from './brutal/defaultData'
+import { exportBrutalHtml } from './brutal/exportTemplate'
+import BrutalPreview from './brutal/BrutalPreview.vue'
 
 /** 模板完整注册项（含默认数据获取器、预览组件、导出函数） */
 interface TemplateEntry extends TemplateMeta {
@@ -48,6 +52,12 @@ const registry: Record<string, TemplateEntry> = {
     getDefaultData: getDawnDefaultData,
     PreviewComponent: DawnPreview,
     exportHtml: exportDawnHtml,
+  },
+  'brutal': {
+    ...brutalMeta,
+    getDefaultData: getBrutalDefaultData,
+    PreviewComponent: BrutalPreview,
+    exportHtml: exportBrutalHtml,
   },
 }
 
