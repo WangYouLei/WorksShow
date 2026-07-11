@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import {
   getUserInfo,
   updateProfile,
@@ -10,9 +10,13 @@ import {
   resetPassword,
 } from '@/api/auth'
 import type { UserInfo, UpdateProfileData, ChangePasswordData, ResetPasswordData } from '@/api/auth'
+import EdgeOneConfigPanel from '@/components/EdgeOneConfigPanel.vue'
 
 const router = useRouter()
-const activeTab = ref<'profile' | 'password' | 'portfolio' | 'career'>('profile')
+const route = useRoute()
+const activeTab = ref<'profile' | 'password' | 'portfolio' | 'career' | 'edgeone'>(
+  route.query.tab === 'edgeone' ? 'edgeone' : 'profile',
+)
 const userInfo = ref<UserInfo | null>(null)
 const loading = ref(false)
 const error = ref('')
@@ -240,6 +244,12 @@ onUnmounted(() => {
         >
           求职意向
         </button>
+        <button
+          :class="['tab-btn', { active: activeTab === 'edgeone' }]"
+          @click="switchTab('edgeone')"
+        >
+          部署配置
+        </button>
       </div>
 
       <!-- 账号信息 -->
@@ -350,6 +360,11 @@ onUnmounted(() => {
           <p class="redirect-desc">在编辑器中管理你的求职意向（期望职位、薪资、城市等）。</p>
           <button class="redirect-btn" @click="router.push('/')">前往模板选择 →</button>
         </div>
+      </div>
+
+      <!-- 部署配置 -->
+      <div v-if="activeTab === 'edgeone'" class="tab-content">
+        <EdgeOneConfigPanel />
       </div>
     </div>
   </div>

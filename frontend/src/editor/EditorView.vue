@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { getTemplateMeta } from '@/templates/registry'
 import { usePortfolioStore, resetPortfolioStore, getSaveStatus, saveNow } from '@/composables/usePortfolioStore'
 import { downloadPortfolioHtml } from '@/composables/useExporter'
+import DeployDialog from '@/components/DeployDialog.vue'
 import PreviewFrame from './PreviewFrame.vue'
 import ProfilePanel from './panels/ProfilePanel.vue'
 import WorksPanel from './panels/WorksPanel.vue'
@@ -48,6 +49,7 @@ const onReset = () => {
 }
 
 const exporting = ref(false)
+const showDeploy = ref(false)
 const onExport = async () => {
   if (exporting.value) return
   exporting.value = true
@@ -83,6 +85,7 @@ const onExport = async () => {
         <button class="export-btn" type="button" :disabled="exporting" @click="onExport">
           {{ exporting ? '导出中…' : '下载 HTML' }}
         </button>
+        <button class="deploy-btn" type="button" @click="showDeploy = true">部署</button>
       </div>
     </header>
 
@@ -112,6 +115,8 @@ const onExport = async () => {
         <PreviewFrame :data="store" :template-id="props.templateId" />
       </section>
     </div>
+
+    <DeployDialog v-model="showDeploy" :template-id="props.templateId" />
   </div>
 </template>
 
@@ -249,6 +254,20 @@ const onExport = async () => {
 }
 .export-btn:not(:disabled):hover {
   background: #e3b885;
+}
+.deploy-btn {
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #d4a574;
+  background: transparent;
+  border: 1px solid rgba(212, 165, 116, 0.4);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.deploy-btn:hover {
+  background: rgba(212, 165, 116, 0.1);
+  border-color: #d4a574;
 }
 .editor-body {
   flex: 1;

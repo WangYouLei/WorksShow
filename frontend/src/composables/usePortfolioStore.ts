@@ -275,3 +275,18 @@ export async function saveNow(_templateId: string): Promise<void> {
   }
   await saveToServer()
 }
+
+/**
+ * 确保指定模板的 portfolio 实例已创建,并返回其 ID。
+ * <p>
+ * 部署功能需要 portfolioId 关联简历实例。首次进入编辑器时
+ * ensurePortfolioInstance 已异步创建实例,但调用方无法感知完成时机,
+ * 此函数封装等待逻辑:幂等调用,完成后返回 portfolioId(失败返回 undefined)。
+ *
+ * @param templateId 模板ID
+ * @return portfolioId,实例未就绪或创建失败时返回 undefined
+ */
+export async function ensurePortfolioId(templateId: string): Promise<number | undefined> {
+  await ensurePortfolioInstance(templateId)
+  return portfolioIds[templateId]
+}

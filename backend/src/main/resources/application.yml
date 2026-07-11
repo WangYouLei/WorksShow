@@ -66,6 +66,12 @@ jwt:
   # token 有效期(毫秒): 24 小时
   expiration: 86400000
 
+# EdgeOne Pages 部署配置
+edgeone:
+  # AES 加密密钥(用于加解密用户的 EdgeOne API SecretId/SecretKey)
+  # 生产环境务必通过环境变量 EDGEONE_ENCRYPT_KEY 注入强随机密钥
+  encrypt-key: ${EDGEONE_ENCRYPT_KEY:worksshow-edgeone-default-aes-key-2026}
+
 logging:
   level:
     com.worksshow: debug

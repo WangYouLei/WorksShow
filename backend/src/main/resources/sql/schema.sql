@@ -284,3 +284,91 @@ DROP TABLE IF EXISTS `portfolio_experience`;
 DROP TABLE IF EXISTS `portfolio_skill`;
 
 */ -- 迁移块结束
+
+
+-- ============================================================
+-- EdgeOne Pages 部署相关表
+-- ------------------------------------------------------------
+-- 说明: 支持用户将编辑好的简历模板部署到 EdgeOne Pages。
+--       共 3 张表:
+--       1) user_edgeone_config: 用户级 EdgeOne API 密钥(1:1,加密)
+--       2) custom_domain:       用户自定义域名(1:N,可复用)
+--       3) deployment:         部署记录(每次部署一条,关联域名+简历)
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- 1. 用户EdgeOne配置表 user_edgeone_config
+-- ------------------------------------------------------------
+-- 说明: 存储用户部署到EdgeOne Pages所需的API凭证。
+--       一个用户一份配置,配置一次后多次部署复用。
+--       - api_token 使用 AES 对称加密存储
+--         加密密钥由环境变量 EDGEONE_ENCRYPT_KEY 注入
+--       - API 响应中严禁返回 api_token 明文或密文
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `user_edgeone_config` (
+    `id`            BIGINT       NOT NULL AUTO_INCREMENT              COMMENT '主键ID',
+    `user_id`       BIGINT       NOT NULL                            COMMENT '所属用户ID(关联 user.id)',
+    `api_token`     VARCHAR(255) NOT NULL                            COMMENT 'EdgeOne Pages API Token(AES加密存储,永不返回前端)',
+    `project_name`  VARCHAR(100)          DEFAULT NULL               COMMENT 'EdgeOne Pages 项目名(CLI -n参数用,部署时默认项目名,明文存储)',
+    `create_time`   DATETIME              DEFAULT CURRENT_TIMESTAMP  COMMENT '创建时间',
+    `update_time`   DATETIME              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted`       TINYINT               DEFAULT 0                  COMMENT '逻辑删除:0-未删除 1-已删除',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_user` (`user_id`, `deleted`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '用户EdgeOne配置表(API Token AES加密存储)';
+
+-- ------------------------------------------------------------
+-- 2. 用户自定义域名表 custom_domain
+-- ------------------------------------------------------------
+-- 说明: 用户保存的自定义域名,可独立复用,一个域名可关联
+--       多次部署(多个页面通过 path 区分)。
+--       - domain: 完整域名(如 myresume.edgeone.app)
+--       - name: 备注名,便于用户区分多个域名(展示用)
+--       - 不加唯一约束: 允许不同用户保存相同域名
+--         (由部署时 EdgeOne API 校验归属)
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `custom_domain` (
+    `id`            BIGINT       NOT NULL AUTO_INCREMENT              COMMENT '主键ID',
+    `user_id`       BIGINT       NOT NULL                            COMMENT '所属用户ID(关联 user.id)',
+    `domain`        VARCHAR(255) NOT NULL                            COMMENT '域名(如myresume.edgeone.app)',
+    `name`          VARCHAR(100)          DEFAULT NULL               COMMENT '域名备注名(展示用,如"求职简历域名")',
+    `create_time`   DATETIME              DEFAULT CURRENT_TIMESTAMP  COMMENT '创建时间',
+    `update_time`   DATETIME              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted`       TINYINT               DEFAULT 0                  COMMENT '逻辑删除:0-未删除 1-已删除',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '用户自定义域名表(可复用,一个域名下挂多个部署)';
+
+-- ------------------------------------------------------------
+-- 3. 模板部署记录表 deployment
+-- ------------------------------------------------------------
+-- 说明: 用户将简历实例(portfolio)部署到EdgeOne Pages的记录。
+--       每次部署生成一条记录,关联一个简历实例。
+--       - custom_domain_id: 可选,关联已保存的自定义域名
+--         NULL 表示使用 EdgeOne 默认分配的域名
+--       - path: 域名下的子路径,同一域名下区分不同页面
+--         (如 /portfolio1),仅当使用自定义域名时有意义
+--       - deploy_url: 最终完整访问URL
+--         (如 myresume.edgeone.app/portfolio1)
+--       - 部署为异步过程,前端轮询 status 获取结果
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `deployment` (
+    `id`                BIGINT       NOT NULL AUTO_INCREMENT              COMMENT '主键ID',
+    `user_id`           BIGINT       NOT NULL                            COMMENT '所属用户ID(关联 user.id)',
+    `portfolio_id`      BIGINT       NOT NULL                            COMMENT '关联简历实例ID(关联 portfolio.id)',
+    `template_id`       VARCHAR(50)  NOT NULL                            COMMENT '模板ID(aurora/mo-yun/pastel,冗余便于查询)',
+    `project_name`      VARCHAR(100) NOT NULL                            COMMENT '部署项目名称(用户自定义,展示用)',
+    `description`       VARCHAR(500)          DEFAULT NULL               COMMENT '部署描述(用户可选填写)',
+    `custom_domain_id`  BIGINT                DEFAULT NULL               COMMENT '关联自定义域名ID(关联 custom_domain.id,NULL表示用EdgeOne默认域名)',
+    `path`              VARCHAR(200)          DEFAULT NULL               COMMENT '域名下子路径(同一域名区分多页面,如/portfolio1)',
+    `status`            TINYINT      DEFAULT 0                          COMMENT '部署状态:0-部署中 1-成功 2-失败',
+    `deploy_url`        VARCHAR(500)          DEFAULT NULL               COMMENT '部署成功后的完整访问URL(如myresume.edgeone.app/portfolio1)',
+    `error_message`     VARCHAR(1000)         DEFAULT NULL               COMMENT '部署失败时的错误信息',
+    `create_time`       DATETIME              DEFAULT CURRENT_TIMESTAMP  COMMENT '创建时间(部署发起时间)',
+    `update_time`       DATETIME              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间(部署完成时间)',
+    `deleted`           TINYINT               DEFAULT 0                  COMMENT '逻辑删除:0-未删除 1-已删除',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_portfolio_id` (`portfolio_id`),
+    KEY `idx_custom_domain_id` (`custom_domain_id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '模板部署记录表(部署到EdgeOne Pages)';
