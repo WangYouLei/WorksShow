@@ -20,6 +20,10 @@ import { brutalMeta } from './brutal/meta'
 import { getBrutalDefaultData } from './brutal/defaultData'
 import { exportBrutalHtml } from './brutal/exportTemplate'
 import BrutalPreview from './brutal/BrutalPreview.vue'
+import { gazetteMeta } from './gazette/meta'
+import { getGazetteDefaultData } from './gazette/defaultData'
+import { exportGazetteHtml } from './gazette/exportTemplate'
+import GazettePreview from './gazette/GazettePreview.vue'
 
 /** 模板完整注册项（含默认数据获取器、预览组件、导出函数） */
 interface TemplateEntry extends TemplateMeta {
@@ -58,6 +62,12 @@ const registry: Record<string, TemplateEntry> = {
     getDefaultData: getBrutalDefaultData,
     PreviewComponent: BrutalPreview,
     exportHtml: exportBrutalHtml,
+  },
+  'gazette': {
+    ...gazetteMeta,
+    getDefaultData: getGazetteDefaultData,
+    PreviewComponent: GazettePreview,
+    exportHtml: exportGazetteHtml,
   },
 }
 
