@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
  * <p>
  * 用户将简历实例(portfolio)部署到 EdgeOne Pages 的记录。
  * 每次部署生成一条记录,关联一个简历实例。
- * 部署为异步过程,前端轮询 status 字段获取结果。
+ * 部署为同步过程,HTTP 请求阻塞等待 CLI 执行完成(通常数秒至数十秒)。
  *
  * @author WorksShow
  */

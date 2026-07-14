@@ -95,6 +95,14 @@ public class EdgeOnePagesClient {
             boolean finished = process.waitFor(deployTimeoutSeconds, TimeUnit.SECONDS);
             if (!finished) {
                 process.destroyForcibly();
+                // 等待进程真正终止,避免遗留僵尸进程占用资源
+                try {
+                    if (!process.waitFor(5, TimeUnit.SECONDS)) {
+                        log.warn("EdgeOne 进程强制销毁后仍未终止");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
                 return new EdgeOneDeployResult(false, null, null,
                         "部署超时(" + deployTimeoutSeconds + "秒)");
             }

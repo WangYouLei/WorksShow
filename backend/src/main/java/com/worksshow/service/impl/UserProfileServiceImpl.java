@@ -1,6 +1,7 @@
 package com.worksshow.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.worksshow.dto.UserProfileDTO;
 import com.worksshow.entity.UserExperience;
 import com.worksshow.entity.UserProfile;
@@ -97,12 +98,18 @@ public class UserProfileServiceImpl implements UserProfileService {
             userProfileMapper.updateById(profile);
         }
 
-        // 2) works/experiences/skills:整体替换
-        replaceWorks(userId, dto.getWorks());
-        replaceExperiences(userId, dto.getExperiences());
-        replaceSkills(userId, dto.getSkills());
+        // 2) works/experiences/skills:整体替换(批量插入)
+        List<UserWork> savedWorks = replaceWorks(userId, dto.getWorks());
+        List<UserExperience> savedExperiences = replaceExperiences(userId, dto.getExperiences());
+        List<UserSkill> savedSkills = replaceSkills(userId, dto.getSkills());
 
-        return getMyProfile();
+        // 3) 直接从内存构造返回(批量插入已回填主键 id),省去重新查库
+        UserProfileDTO result = new UserProfileDTO();
+        result.setProfile(toProfileDTO(profile));
+        result.setWorks(savedWorks.stream().map(UserProfileServiceImpl::toWorkDTO).toList());
+        result.setExperiences(savedExperiences.stream().map(UserProfileServiceImpl::toExperienceDTO).toList());
+        result.setSkills(savedSkills.stream().map(UserProfileServiceImpl::toSkillDTO).toList());
+        return result;
     }
 
     // ==================== 私有辅助方法 ====================
@@ -129,13 +136,14 @@ public class UserProfileServiceImpl implements UserProfileService {
     /**
      * 整体替换作品:逻辑删除旧记录 + 批量插入新记录
      */
-    private void replaceWorks(Long userId, List<UserProfileDTO.WorkDTO> works) {
+    private List<UserWork> replaceWorks(Long userId, List<UserProfileDTO.WorkDTO> works) {
         userWorkMapper.delete(new LambdaQueryWrapper<UserWork>()
                 .eq(UserWork::getUserId, userId));
         if (works == null || works.isEmpty()) {
-            return;
+            return List.of();
         }
         int sortOrder = 0;
+        List<UserWork> list = new ArrayList<>(works.size());
         for (UserProfileDTO.WorkDTO w : works) {
             UserWork work = new UserWork();
             work.setUserId(userId);
@@ -149,20 +157,23 @@ public class UserProfileServiceImpl implements UserProfileService {
             // Boolean → Integer(0/1),null 视为 0
             work.setHighlight(Boolean.TRUE.equals(w.getHighlight()) ? 1 : 0);
             work.setSortOrder(sortOrder++);
-            userWorkMapper.insert(work);
+            list.add(work);
         }
+        Db.saveBatch(list);
+        return list;
     }
 
     /**
      * 整体替换经历:逻辑删除旧记录 + 批量插入新记录
      */
-    private void replaceExperiences(Long userId, List<UserProfileDTO.ExperienceDTO> experiences) {
+    private List<UserExperience> replaceExperiences(Long userId, List<UserProfileDTO.ExperienceDTO> experiences) {
         userExperienceMapper.delete(new LambdaQueryWrapper<UserExperience>()
                 .eq(UserExperience::getUserId, userId));
         if (experiences == null || experiences.isEmpty()) {
-            return;
+            return List.of();
         }
         int sortOrder = 0;
+        List<UserExperience> list = new ArrayList<>(experiences.size());
         for (UserProfileDTO.ExperienceDTO e : experiences) {
             UserExperience exp = new UserExperience();
             exp.setUserId(userId);
@@ -172,20 +183,23 @@ public class UserProfileServiceImpl implements UserProfileService {
             exp.setDescription(e.getDescription());
             exp.setType(e.getType());
             exp.setSortOrder(sortOrder++);
-            userExperienceMapper.insert(exp);
+            list.add(exp);
         }
+        Db.saveBatch(list);
+        return list;
     }
 
     /**
      * 整体替换技能:逻辑删除旧记录 + 批量插入新记录
      */
-    private void replaceSkills(Long userId, List<UserProfileDTO.SkillDTO> skills) {
+    private List<UserSkill> replaceSkills(Long userId, List<UserProfileDTO.SkillDTO> skills) {
         userSkillMapper.delete(new LambdaQueryWrapper<UserSkill>()
                 .eq(UserSkill::getUserId, userId));
         if (skills == null || skills.isEmpty()) {
-            return;
+            return List.of();
         }
         int sortOrder = 0;
+        List<UserSkill> list = new ArrayList<>(skills.size());
         for (UserProfileDTO.SkillDTO s : skills) {
             UserSkill skill = new UserSkill();
             skill.setUserId(userId);
@@ -193,8 +207,10 @@ public class UserProfileServiceImpl implements UserProfileService {
             skill.setCategoryEn(s.getCategoryEn());
             skill.setItems(s.getItems());
             skill.setSortOrder(sortOrder++);
-            userSkillMapper.insert(skill);
+            list.add(skill);
         }
+        Db.saveBatch(list);
+        return list;
     }
 
     // ==================== 实体 → DTO 转换 ====================

@@ -48,6 +48,9 @@ public class EmailCodeServiceImpl implements EmailCodeService {
     /** 发送频率限制: 60秒内不可重复发送(毫秒) */
     private static final long SEND_INTERVAL_MS = 60 * 1000;
 
+    /** 验证码最大尝试次数:超过后作废,需重新获取 */
+    private static final int MAX_VERIFY_ATTEMPTS = 5;
+
     /** 密码学安全随机数生成器(验证码生成) */
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -61,7 +64,7 @@ public class EmailCodeServiceImpl implements EmailCodeService {
      * @param expireTime 过期时间戳(毫秒)
      * @param sendTime   发送时间戳(毫秒)
      */
-    private record CodeEntry(String code, long expireTime, long sendTime) {}
+    private record CodeEntry(String code, long expireTime, long sendTime, int attempts) {}
 
     @Override
     public void sendCode(String email) {
@@ -105,7 +108,7 @@ public class EmailCodeServiceImpl implements EmailCodeService {
 
         // 存储验证码(5分钟有效)
         long now = System.currentTimeMillis();
-        codeStore.put(email, new CodeEntry(code, now + CODE_EXPIRE_MS, now));
+        codeStore.put(email, new CodeEntry(code, now + CODE_EXPIRE_MS, now, 0));
 
         // 发送邮件
         try {
@@ -144,9 +147,16 @@ public class EmailCodeServiceImpl implements EmailCodeService {
             throw new BusinessException(400, "验证码已过期,请重新获取");
         }
 
-        // 验证码不匹配
+        // 验证码不匹配:递增尝试次数,超过阈值则作废验证码
         if (!entry.code().equals(code)) {
-            log.warn("验证码校验失败,验证码错误: email={}", email);
+            int attempts = entry.attempts() + 1;
+            if (attempts >= MAX_VERIFY_ATTEMPTS) {
+                codeStore.remove(email);
+                log.warn("验证码校验失败,尝试次数超限,验证码已作废: email={}, attempts={}", email, attempts);
+                throw new BusinessException(400, "验证码错误次数过多,请重新获取");
+            }
+            codeStore.put(email, new CodeEntry(entry.code(), entry.expireTime(), entry.sendTime(), attempts));
+            log.warn("验证码校验失败,验证码错误: email={}, attempts={}", email, attempts);
             throw new BusinessException(400, "验证码错误");
         }
 

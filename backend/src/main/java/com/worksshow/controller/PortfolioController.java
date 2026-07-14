@@ -5,6 +5,7 @@ import com.worksshow.dto.PortfolioDataDTO;
 import com.worksshow.dto.PortfolioRequestDTO;
 import com.worksshow.entity.Portfolio;
 import com.worksshow.service.PortfolioService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -65,7 +66,7 @@ public class PortfolioController {
      * 创建简历实例
      */
     @PostMapping
-    public Result<Portfolio> create(@RequestBody PortfolioRequestDTO dto) {
+    public Result<Portfolio> create(@Valid @RequestBody PortfolioRequestDTO dto) {
         log.info("创建简历请求: name={}, templateId={}", dto.getName(), dto.getTemplateId());
         return Result.ok("创建成功", portfolioService.create(dto));
     }
@@ -74,7 +75,7 @@ public class PortfolioController {
      * 更新简历实例(仅名称,templateId 不可变)
      */
     @PutMapping("/{id}")
-    public Result<Portfolio> update(@PathVariable Long id, @RequestBody PortfolioRequestDTO dto) {
+    public Result<Portfolio> update(@PathVariable Long id, @Valid @RequestBody PortfolioRequestDTO dto) {
         log.info("更新简历请求: id={}", id);
         return Result.ok("更新成功", portfolioService.update(id, dto));
     }

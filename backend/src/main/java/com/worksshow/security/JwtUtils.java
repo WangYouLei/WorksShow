@@ -101,7 +101,8 @@ public class JwtUtils {
      * 从 token 中获取用户ID(解析整个 token)
      */
     public Long getUserId(String token) {
-        return parseToken(token).getSubject() != null ? Long.parseLong(parseToken(token).getSubject()) : null;
+        Claims claims = parseToken(token);
+        return claims.getSubject() != null ? Long.parseLong(claims.getSubject()) : null;
     }
 
     /**

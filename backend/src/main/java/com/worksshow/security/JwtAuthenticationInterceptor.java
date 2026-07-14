@@ -41,10 +41,15 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
         }
 
         String token = resolveToken(request);
+        if (token == null) {
+            log.warn("未携带 token,请求路径: {}", request.getRequestURI());
+            writeUnauthorized(response, "未登录或登录已失效,请重新登录");
+            return false;
+        }
         // 复用 parseAndValidate 只解析一次,避免重复 HMAC 验签;同时统一捕获 ExpiredJwtException 等异常
         Claims claims = jwtUtils.parseAndValidate(token);
-        if (token == null || claims == null) {
-            log.warn("未携带或非法 token,请求路径: {}", request.getRequestURI());
+        if (claims == null) {
+            log.warn("非法 token,请求路径: {}", request.getRequestURI());
             writeUnauthorized(response, "未登录或登录已失效,请重新登录");
             return false;
         }
