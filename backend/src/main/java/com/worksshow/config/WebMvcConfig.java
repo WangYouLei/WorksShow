@@ -1,43 +1,20 @@
 package com.worksshow.config;
 
-import com.worksshow.security.JwtAuthenticationInterceptor;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * Web MVC 配置
  * <p>
- * 1. 注册 JWT 拦截器,放行注册/登录等公开接口
- * 2. 配置 CORS,允许前端(Vite 默认 5173 端口)跨域访问
+ * 仅保留 CORS 配置。
+ * 拦截器与放行路径已迁移至 {@link SaTokenConfig},
+ * 由 Sa-Token 的 {@code SaInterceptor} 统一接管认证校验。
  *
  * @author WorksShow
  */
 @Configuration
-@RequiredArgsConstructor
 public class WebMvcConfig implements WebMvcConfigurer {
-
-    private final JwtAuthenticationInterceptor jwtInterceptor;
-
-    /**
-     * 注册拦截器
-     * 注意: 路径相对于 context-path(/api),因此配置 /user/** 即对应 /api/user/**
-     */
-    @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(jwtInterceptor)
-                .addPathPatterns("/**")
-                // 放行: 发送验证码、注册、登录、忘记密码(公开接口)
-                .excludePathPatterns(
-                        "/user/sendCode",
-                        "/user/register",
-                        "/user/login",
-                        "/user/forgot-password/**",
-                        "/error",
-                        "/favicon.ico");
-    }
 
     /**
      * 跨域配置: 允许前端开发服务器访问

@@ -59,12 +59,26 @@ mybatis-plus:
   # Mapper XML 路径(本工程使用注解开发,预留扩展)
   mapper-locations: classpath*:/mapper/**/*.xml
 
-# 自定义 JWT 配置
-jwt:
-  # 签名密钥(Base64 编码),生产环境务必通过环境变量 JWT_SECRET 注入强随机密钥
-  secret: d29ya3Nob3ctc2VjcmV0LWtleS1mb3Itand0LXNpZ25pbmctMjAyNg==
-  # token 有效期(毫秒): 24 小时
-  expiration: 86400000
+# Sa-Token 配置 (文档: https://sa-token.cc)
+sa-token:
+  # token 名称(同时也是 Cookie/Header 名),沿用原 Authorization 头
+  token-name: Authorization
+  # token 前缀: 请求头格式为 "Authorization: Bearer xxx",sa-token 自动剥离前缀
+  token-prefix: Bearer
+  # token 有效期(单位: 秒): 24 小时
+  timeout: 86400
+  # token 最低活跃频率(单位: 秒),-1 代表不限制,永不冻结
+  active-timeout: -1
+  # 是否允许同一账号多地同时登录 (true 允许一起登录,false 新登录挤掉旧登录)
+  is-concurrent: true
+  # 在多人登录同一账号时,是否共用一个 token (true 共用,false 每次登录新建)
+  is-share: false
+  # token 风格: jwt (StateLess 模式必须)
+  token-style: jwt
+  # 是否输出操作日志
+  is-log: false
+  # JWT 签名密钥,生产环境务必通过环境变量 JWT_SECRET 注入强随机密钥
+  jwt-secret-key: ${JWT_SECRET:worksshow-secret-key-for-jwt-signing-2026}
 
 # EdgeOne Pages 部署配置
 edgeone:

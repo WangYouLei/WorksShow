@@ -1,5 +1,9 @@
 package com.worksshow.exception;
 
+import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.NotPermissionException;
+import cn.dev33.satoken.exception.NotRoleException;
+import cn.dev33.satoken.exception.SaTokenException;
 import com.worksshow.common.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
@@ -26,6 +30,34 @@ public class GlobalExceptionHandler {
     public Result<Void> handleBusinessException(BusinessException e) {
         log.warn("业务异常: code={}, message={}", e.getCode(), e.getMessage());
         return Result.fail(e.getCode(), e.getMessage());
+    }
+
+    /** Sa-Token 未登录: token 缺失/过期/非法,返回 401 */
+    @ExceptionHandler(NotLoginException.class)
+    public Result<Void> handleNotLoginException(NotLoginException e) {
+        log.warn("未登录或登录已失效: type={}, message={}", e.getType(), e.getMessage());
+        return Result.fail(401, "未登录或登录已失效,请重新登录");
+    }
+
+    /** Sa-Token 无权限: 已登录但缺少所需权限点,返回 403 */
+    @ExceptionHandler(NotPermissionException.class)
+    public Result<Void> handleNotPermissionException(NotPermissionException e) {
+        log.warn("无权限访问: code={}", e.getCode());
+        return Result.fail(403, "无权限访问");
+    }
+
+    /** Sa-Token 无角色: 已登录但缺少所需角色,返回 403 */
+    @ExceptionHandler(NotRoleException.class)
+    public Result<Void> handleNotRoleException(NotRoleException e) {
+        log.warn("无角色访问: role={}", e.getRole());
+        return Result.fail(403, "无角色访问");
+    }
+
+    /** Sa-Token 其他异常兜底 */
+    @ExceptionHandler(SaTokenException.class)
+    public Result<Void> handleSaTokenException(SaTokenException e) {
+        log.warn("Sa-Token 异常: code={}, message={}", e.getCode(), e.getMessage());
+        return Result.fail(401, "认证失败,请重新登录");
     }
 
     /** 参数校验异常: @Valid 校验失败时触发 */
@@ -58,3 +90,4 @@ public class GlobalExceptionHandler {
         return Result.fail("系统繁忙,请稍后重试");
     }
 }
+

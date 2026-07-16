@@ -127,10 +127,13 @@ public class UserController {
 
     /**
      * 退出登录
-     * JWT 为无状态,服务端不存储,客户端清除本地 token 即可。
+     * <p>
+     * StateLess 模式下服务端不存储会话,客户端清除本地 token 即可,
+     * 此处调用 StpUtil.logout() 保持语义完整,未来切换会话模式可无缝生效。
      */
     @PostMapping("/logout")
     public Result<Void> logout() {
+        cn.dev33.satoken.stp.StpUtil.logout();
         return Result.ok("已退出登录", null);
     }
 }

@@ -1,5 +1,7 @@
 package com.worksshow.service.impl;
 
+import cn.dev33.satoken.stp.SaLoginModel;
+import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.worksshow.dto.ChangePasswordRequest;
@@ -11,7 +13,6 @@ import com.worksshow.dto.UpdateProfileRequest;
 import com.worksshow.entity.User;
 import com.worksshow.exception.BusinessException;
 import com.worksshow.mapper.UserMapper;
-import com.worksshow.security.JwtUtils;
 import com.worksshow.security.UserContext;
 import com.worksshow.service.EmailCodeService;
 import com.worksshow.service.UserService;
@@ -26,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>
  * 实现注册、登录、获取当前用户的核心业务逻辑:
  * - 注册: 校验邮箱/手机号唯一性,验证邮箱验证码,密码 BCrypt 加密后入库
- * - 登录: 按手机号或邮箱查询,BCrypt 比对密码,通过后签发 JWT
+ * - 登录: 按手机号或邮箱查询,BCrypt 比对密码,通过后调用 Sa-Token 颁发 JWT
  * - 获取当前用户: 从 UserContext 读取 userId,回查用户信息
  *
  * @author WorksShow
@@ -36,7 +37,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
-    private final JwtUtils jwtUtils;
     private final EmailCodeService emailCodeService;
     private final BCryptPasswordEncoder passwordEncoder;
 
@@ -111,8 +111,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(403, "账号已被禁用,请联系管理员");
         }
 
-        // 4. 签发 JWT 并返回登录响应
-        String token = jwtUtils.generateToken(user.getId(), user.getNickname());
+        // 4. Sa-Token 登录:StateLess 模式下生成自包含 JWT,
+        //    userId 作为 subject,nickname 通过 extra 写入 JWT claim
+        StpUtil.login(user.getId(),
+                new SaLoginModel().setExtra("nickname", user.getNickname()));
+        String token = StpUtil.getTokenValue();
         log.info("用户登录成功: id={}, nickname={}", user.getId(), user.getNickname());
         return new LoginResponse(token, user.getId(), user.getNickname());
     }
