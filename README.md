@@ -16,7 +16,7 @@
 
 ## 📖 项目简介
 
-**WorksShow** 是一个面向开发者与设计师的「个人品牌站点」构建工具。用户只需在可视化编辑器中填写一次个人信息、作品、经历与技能，即可在 **5 套风格迥异的模板** 间自由切换预览，并支持 **一键导出为单文件 HTML**（含内联 CSS + 原生 JS runtime，可直接部署到任意静态托管平台）。
+**WorksShow** 是一个面向开发者与设计师的「个人品牌站点」构建工具。用户只需在可视化编辑器中填写一次个人信息、作品、经历与技能，即可在 **6 套风格迥异的模板** 间自由切换预览，并支持 **一键导出为单文件 HTML**（含内联 CSS + 原生 JS runtime，可直接部署到任意静态托管平台）。
 
 项目采用前后端分离架构，后端提供完整的用户体系（注册、登录、邮箱验证码、密码找回）、用户档案管理与简历实例管理，所有接口均通过 JWT 拦截器鉴权。
 
@@ -24,9 +24,10 @@
 
 | 维度                 | 说明                                                           |
 | ------------------ | ------------------------------------------------------------ |
-| 🎨 **多模板引擎**       | 自研模板注册表机制，5 套模板（墨韵 / 粉彩 / 极光 / 晨曦 / 野性）各自独立打包，新增模板只需注册一个对象   |
+| 🎨 **多模板引擎**       | 自研模板注册表机制，6 套模板（墨韵 / 粉彩 / 极光 / 晨曦 / 野性 / 报章）各自独立打包，新增模板只需注册一个对象   |
 | 🧩 **内容与模板解耦**     | 简历内容与模板实例分离存储，填一次内容所有模板复用，切换模板零成本                            |
 | 📦 **单文件 HTML 导出** | 利用 Vue 离屏渲染 + DOM 序列化，将运行时组件树导出为无依赖的独立 HTML 文件               |
+| 🚀 **一键 EdgeOne 部署** | 集成腾讯云 EdgeOne Pages，一键将作品集部署为公开访问站点（含自动生成访问凭证）
 | 🔒 **工程化安全实践**     | BCrypt 加密 / JWT 鉴权 / SecureRandom 验证码 / 防账号枚举 / 逻辑删除 / 事务一致性 |
 | ⚡ **前端自动保存**       | 深度 watch + 800ms 防抖，编辑即持久化；保存期间变更通过 `pendingSave` 标志位避免丢失    |
 | 🧱 **零 UI 框架**     | 前端纯手写组件 + scoped 样式，无 Element/Ant Design 等依赖，体积可控            |
@@ -37,7 +38,7 @@
 
 > 以下为运行截图（可替换为实际 GIF/图片）：
 
-- **模板画廊**：5 套模板可视化选择
+- **模板画廊**：6 套模板可视化选择
 - **编辑器**：左侧表单 + 右侧 iframe 实时预览，5 个内容面板切换
 - **登录/注册**：邮箱验证码注册流程
 - **导出效果**：单文件 HTML 在浏览器中独立运行
@@ -104,7 +105,8 @@
 ┌─────────────────────────────────────────────────────────────┐
 │              MySQL  (works_show, utf8mb4)                   │
 │  user / user_profile / portfolio / user_work /             │
-│  user_experience / user_skill / career_intention           │
+│  user_experience / user_skill / career_intention /         │
+│  user_edgeone_config / custom_domain / deployment          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -114,37 +116,41 @@
 
 ```
 WorksShow/
-├── src/                          # 前端源码
-│   ├── api/                      # Axios 封装与各模块 API
-│   │   ├── request.ts            #   实例 + 拦截器（token 携带 / Result 解包 / 401 跳登录）
-│   │   ├── auth.ts               #   注册 / 登录 / 验证码 / 密码找回
-│   │   ├── portfolio.ts          #   简历实例 CRUD
-│   │   ├── userProfile.ts        #   用户档案读写
-│   │   └── career.ts             #   求职意向
-│   ├── components/               # 通用展示组件（Hero / About / Skills / Works / Modal …）
-│   ├── composables/              # 组合式函数
-│   │   ├── usePortfolioStore.ts  #   全局共享简历数据 + 800ms 防抖自动保存
-│   │   ├── useExporter.ts        #   导出单文件 HTML
-│   │   ├── usePortfolio.ts       #   provide/inject 数据注入
-│   │   └── useScrollReveal.ts    #   滚动揭示动画
-│   ├── data/                     # 数据类型与默认数据
-│   ├── editor/                   # 可视化编辑器
-│   │   ├── EditorView.vue        #   左表单 + 右预览主视图
-│   │   ├── PreviewFrame.vue      #   iframe 实时预览
-│   │   ├── TemplateGallery.vue   #   模板选择页
-│   │   └── panels/               #   5 个内容编辑面板
-│   ├── templates/                # ⭐ 模板系统（5 套）
-│   │   ├── registry.ts           #   统一注册表
-│   │   ├── types.ts              #   Template / TemplateMeta 接口
-│   │   ├── mo-yun/               #   墨韵：东方水墨 × 杂志风
-│   │   ├── pastel/               #   粉彩：柔和粉彩 × 轻盈现代
-│   │   ├── aurora/               #   极光：深空 × 玻璃拟态 × Bento Grid
-│   │   ├── dawn/                 #   晨曦：暖白编辑风 × 赭石橙
-│   │   └── brutal/               #   野性：粗野主义 × 硬边框 × 原色块
-│   ├── views/                    # 登录 / 注册 / 账号管理
-│   ├── App.vue
-│   ├── main.ts
-│   └── router.ts                 # Hash 路由 + 全局守卫
+├── frontend/                     # 前端源码
+│   ├── src/
+│   │   ├── api/                  # Axios 封装与各模块 API
+│   │   │   ├── request.ts        #   实例 + 拦截器（token 携带 / Result 解包 / 401 跳登录）
+│   │   │   ├── auth.ts           #   注册 / 登录 / 验证码 / 密码找回
+│   │   │   ├── portfolio.ts      #   简历实例 CRUD
+│   │   │   ├── userProfile.ts    #   用户档案读写
+│   │   │   ├── career.ts         #   求职意向
+│   │   │   ├── deployment.ts     #   EdgeOne 部署 API
+│   │   │   └── edgeoneConfig.ts  #   EdgeOne 配置 API
+│   │   ├── components/           # 通用展示组件
+│   │   │   ├── DeployDialog.vue  #   EdgeOne 部署弹窗
+│   │   │   ├── EdgeOneConfigPanel.vue # EdgeOne 配置面板
+│   │   │   └── ...               #   Hero / About / Skills / Works / Modal
+│   │   ├── composables/          # 组合式函数
+│   │   │   ├── usePortfolioStore.ts  # 全局共享简历数据 + 800ms 防抖自动保存
+│   │   │   ├── useExporter.ts        # 导出单文件 HTML
+│   │   │   └── ...
+│   │   ├── editor/               # 可视化编辑器
+│   │   │   ├── EditorView.vue    #   左表单 + 右预览主视图（含部署按钮）
+│   │   │   └── panels/           #   5 个内容编辑面板
+│   │   ├── templates/            # ⭐ 模板系统（6 套）
+│   │   │   ├── mo-yun/           #   墨韵：东方水墨 × 杂志风
+│   │   │   ├── pastel/           #   粉彩：柔和粉彩 × 轻盈现代
+│   │   │   ├── aurora/           #   极光：深空 × 玻璃拟态 × Bento Grid
+│   │   │   ├── dawn/             #   晨曦：暖白编辑风 × 赭石橙
+│   │   │   ├── brutal/           #   野性：粗野主义 × 硬边框 × 原色块
+│   │   │   └── gazette/          #   报章：古典报刊 × 印刷美学 × 多栏排版
+│   │   ├── views/                # 登录 / 注册 / 账号管理
+│   │   ├── App.vue
+│   │   ├── main.ts
+│   │   └── router.ts             # Hash 路由 + 全局守卫
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.ts
 ├── backend/                      # 后端源码
 │   ├── pom.xml
 │   └── src/main/
@@ -155,9 +161,9 @@ WorksShow/
 │       │   │   ├── WebMvcConfig.java               #   JWT 拦截器注册 + CORS
 │       │   │   ├── SecurityConfig.java             #   BCryptPasswordEncoder Bean
 │       │   │   └── MybatisPlusConfig.java
-│       │   ├── controller/                         # 4 个 REST 控制器
+│       │   ├── controller/                         # 7 个 REST 控制器（含部署相关）
 │       │   ├── dto/                                # 请求 / 响应 DTO
-│       │   ├── entity/                             # 7 个实体
+│       │   ├── entity/                             # 10 个实体（含部署相关）
 │       │   ├── exception/                          # 全局异常处理
 │       │   ├── mapper/                             # MyBatis-Plus Mapper
 │       │   ├── security/
@@ -168,9 +174,6 @@ WorksShow/
 │       └── resources/
 │           ├── application.yml
 │           └── sql/schema.sql                      # 数据库初始化脚本
-├── vite.config.ts
-├── tsconfig.json
-├── package.json
 └── README.md
 ```
 
@@ -289,17 +292,20 @@ user_skill 表       →  用户级技能（按分类，JSON 列）
 
 ## 🗄️ 数据库设计
 
-7 张表，utf8mb4 字符集，使用 JSON 列存储嵌套数组（stats / socials / tags / items / 期望行业 / 期望城市）。
+10 张表，utf8mb4 字符集，使用 JSON 列存储嵌套数组（stats / socials / tags / items / 期望行业 / 期望城市）。
 
 | 表名                 | 说明          | 关键设计                                                                   |
 | ------------------ | ----------- | ---------------------------------------------------------------------- |
 | `user`             | 用户表         | BCrypt 密码；复合唯一索引 `(email, deleted)` / `(phone, deleted)` 解决逻辑删除后无法重新注册 |
 | `user_profile`     | 用户简历档案（1:1） | 懒创建；JSON 列存 stats/socials                                              |
-| `portfolio`        | 简历实例（模板实例）  | 仅 `user_id + template_id + name`，内容存于 user\_\*                         |
-| `user_work`        | 用户作品        | JSON 列存 tags；highlight 标记旗舰作品；sort\_order 排序                           |
+| `portfolio`        | 简历实例（模板实例）  | 仅 `user_id + template_id + name`，内容存于 user_*                         |
+| `user_work`        | 用户作品        | JSON 列存 tags；highlight 标记旗舰作品；sort_order 排序                           |
 | `user_experience`  | 用户经历        | `type` 字段区分 work / education，统一存储                                      |
 | `user_skill`       | 用户技能        | 按 category 分组，JSON 列存 items                                            |
 | `career_intention` | 求职意向（1:1）   | 期望行业/城市用 JSON 数组；薪资区间                                                  |
+| `user_edgeone_config` | EdgeOne 配置（1:1） | API Token AES 加密存储；永不返回前端；项目名明文存储                                   |
+| `custom_domain`    | 自定义域名（1:N）   | 可复用，一个域名关联多次部署；通过 deployment.path 子路径区分多页面                          |
+| `deployment`       | 部署记录（1:N）    | 部署状态、访问 URL、错误信息；关联 portfolio 与自定义域名；支持同步等待 CLI 执行完成                 |
 
 初始化脚本：[backend/src/main/resources/sql/schema.sql](backend/src/main/resources/sql/schema.sql)（使用 `CREATE TABLE IF NOT EXISTS`，可安全重复执行）。
 
@@ -337,7 +343,7 @@ user_skill 表       →  用户级技能（按分类，JSON 列）
 | GET    | `/list` | 当前用户简历实例列表                  |
 | GET    | `/{id}` | 简历详情（实例元数据 + 用户档案内容）        |
 | POST   | `/`     | 创建实例（同模板去重，已存在则返回已有）        |
-| PUT    | `/{id}` | 更新（仅 name，template\_id 不可变） |
+| PUT    | `/{id}` | 更新（仅 name，template_id 不可变） |
 | DELETE | `/{id}` | 逻辑删除（用户档案不受影响）              |
 
 ### 求职意向接口 `/api/career-intention`
@@ -346,6 +352,31 @@ user_skill 表       →  用户级技能（按分类，JSON 列）
 | --- | --- | --------------- |
 | GET | `/` | 获取求职意向          |
 | PUT | `/` | 保存 / 更新（upsert） |
+
+### EdgeOne 配置接口 `/api/edgeone-config`
+
+| 方法     | 路径  | 说明                          |
+| ------ | --- | --------------------------- |
+| GET    | `/` | 获取当前用户配置（脱敏，不返回 API Token）      |
+| POST   | `/` | 保存 / 更新配置（API Token 入库前 AES 加密） |
+| DELETE | `/` | 删除配置（逻辑删除）                  |
+
+### 自定义域名接口 `/api/custom-domain`
+
+| 方法     | 路径       | 说明                      |
+| ------ | -------- | ----------------------- |
+| GET    | `/list`  | 获取当前用户域名列表             |
+| POST   | `/`      | 新增域名                    |
+| PUT    | `/{id}`  | 更新域名（修改备注名）            |
+| DELETE | `/{id}`  | 删除域名（逻辑删除，不影响已部署页面）   |
+
+### 部署接口 `/api/deployment`
+
+| 方法   | 路径       | 说明                              |
+| ---- | -------- | ------------------------------- |
+| POST | `/`      | 部署简历到 EdgeOne Pages（传入渲染后的 HTML，同步等待 CLI 执行完成） |
+| GET  | `/list`  | 获取当前用户部署记录列表                   |
+| GET  | `/{id}`  | 获取部署详情（状态、访问 URL、错误信息）         |
 
 ***
 
@@ -398,7 +429,7 @@ mvn spring-boot:run
 ### 5. 启动前端
 
 ```bash
-cd d:/java/WorksShow   # 项目根目录
+cd frontend   # 进入前端目录
 npm install
 npm run dev
 ```
@@ -416,12 +447,22 @@ npm run dev
 ### 前端
 
 ```bash
-npm run build     # vue-tsc 类型检查 + Vite 打包，产物在 dist/
+cd frontend
+npm run build     # vue-tsc 类型检查 + Vite 打包，产物在 frontend/dist/
 npm run preview   # 本地预览生产构建
 npm run check     # 仅类型检查
 ```
 
-部署：将 `dist/` 部署到 Nginx / Vercel / Netlify / GitHub Pages 等任意静态托管，反向代理 `/api` 到后端。
+部署：将 `frontend/dist/` 部署到 Nginx / Vercel / Netlify / GitHub Pages 等任意静态托管，反向代理 `/api` 到后端。
+
+### 一键 EdgeOne 部署
+
+编辑器顶部工具栏提供「部署」按钮，支持一键将作品集部署到腾讯云 EdgeOne Pages：
+
+1. 在「账号管理 → 部署配置」中配置 EdgeOne API Token
+2. 点击编辑器「部署」按钮
+3. 填写项目名与描述，点击「开始部署」
+4. 部署成功后获得访问链接（含访问凭证）
 
 ### 后端
 
@@ -435,30 +476,35 @@ java -jar target/worksshow-backend-0.0.1-SNAPSHOT.jar
 
 ## 💡 项目亮点回顾
 
-1. **自研多模板引擎**：注册表 + 标准化模板接口，扩展性极强，新增模板零侵入
+1. **自研多模板引擎**：注册表 + 标准化模板接口，6 套模板（墨韵 / 粉彩 / 极光 / 晨曦 / 野性 / 报章），新增模板零侵入
 2. **内容与模板解耦**：一份内容驱动多套模板，数据一致性高
-3. **单文件 HTML 导出**：Vue 离屏渲染 + DOM 序列化，无运行时依赖
-4. **完整的安全实践**：BCrypt / JWT / SecureRandom / 防账号枚举 / 逻辑删除 / 事务一致性 / 越权校验
-5. **工程化规范**：统一响应封装、全局异常处理、DTO 类型化、环境变量配置、可重复执行的 SQL 脚本
-6. **零 UI 框架**：纯手写组件，对 CSS 与组件设计有深度练习
+3. **单文件 HTML 导出**：Vue 离屏渲染 + DOM 序列化，无运行时依赖，可直接部署到任意静态托管
+4. **一键 EdgeOne 部署**：集成腾讯云 EdgeOne Pages，编辑器内一键部署为公开访问站点
+5. **完整的安全实践**：BCrypt / JWT / SecureRandom / 防账号枚举 / 逻辑删除 / 事务一致性 / 越权校验
+6. **工程化规范**：统一响应封装、全局异常处理、DTO 类型化、环境变量配置、可重复执行的 SQL 脚本
+7. **零 UI 框架**：纯手写组件，对 CSS 与组件设计有深度练习
 
 ***
 
 ## 📝 开发命令速查
 
 ```bash
-# 前端
+# 前端（进入 frontend 目录）
+cd frontend
 npm install          # 安装依赖
-npm run dev          # 启动开发服务器 (5173)
-npm run build        # 类型检查 + 生产构建
+npm run dev          # 启动开发服务器 (http://localhost:5173)
+npm run build        # 类型检查 + 生产构建（产物在 frontend/dist/）
 npm run preview      # 预览生产构建
 npm run check        # 仅类型检查
 
-# 后端
-mvn spring-boot:run           # 启动开发服务器 (8080)
+# 后端（进入 backend 目录）
+cd backend
+mvn spring-boot:run           # 启动开发服务器 (http://localhost:8080/api)
 mvn clean package             # 打包
 mvn test                      # 运行测试
+
+# 数据库初始化
+mysql -u root -p < backend/src/main/resources/sql/schema.sql
 ```
 
 ***
-
