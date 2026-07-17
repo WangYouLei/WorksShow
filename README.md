@@ -1,7 +1,7 @@
 # WorksShow · 可视化作品集编辑器
 
 > 一个「填一次内容，多模板切换，一键导出」的全栈作品集/简历编辑器。
-> 前端 Vue 3 + TypeScript + Vite，后端 Spring Boot 3 + MyBatis-Plus + MySQL，JWT 鉴权 + 邮箱验证码注册。
+> 前端 Vue 3 + TypeScript + Vite，后端 Spring Boot 3 + MyBatis-Plus + MySQL，Sa-Token 鉴权 + 邮箱验证码注册。
 
 <p align="center">
   <img alt="Vue" src="https://img.shields.io/badge/Vue-3.4-42b883?logo=vue.js&logoColor=white">
@@ -22,15 +22,15 @@
 
 ### ✨ 核心亮点
 
-| 维度                 | 说明                                                           |
-| ------------------ | ------------------------------------------------------------ |
-| 🎨 **多模板引擎**       | 自研模板注册表机制，6 套模板（墨韵 / 粉彩 / 极光 / 晨曦 / 野性 / 报章）各自独立打包，新增模板只需注册一个对象   |
-| 🧩 **内容与模板解耦**     | 简历内容与模板实例分离存储，填一次内容所有模板复用，切换模板零成本                            |
-| 📦 **单文件 HTML 导出** | 利用 Vue 离屏渲染 + DOM 序列化，将运行时组件树导出为无依赖的独立 HTML 文件               |
-| 🚀 **一键 EdgeOne 部署** | 集成腾讯云 EdgeOne Pages，一键将作品集部署为公开访问站点（含自动生成访问凭证）
-| 🔒 **工程化安全实践**     | BCrypt 加密 / JWT 鉴权 / SecureRandom 验证码 / 防账号枚举 / 逻辑删除 / 事务一致性 |
-| ⚡ **前端自动保存**       | 深度 watch + 800ms 防抖，编辑即持久化；保存期间变更通过 `pendingSave` 标志位避免丢失    |
-| 🧱 **零 UI 框架**     | 前端纯手写组件 + scoped 样式，无 Element/Ant Design 等依赖，体积可控            |
+| 维度                   | 说明                                                              |
+| -------------------- | --------------------------------------------------------------- |
+| 🎨 **多模板引擎**         | 自研模板注册表机制，6 套模板（墨韵 / 粉彩 / 极光 / 晨曦 / 野性 / 报章）各自独立打包，新增模板只需注册一个对象 |
+| 🧩 **内容与模板解耦**       | 简历内容与模板实例分离存储，填一次内容所有模板复用，切换模板零成本                               |
+| 📦 **单文件 HTML 导出**   | 利用 Vue 离屏渲染 + DOM 序列化，将运行时组件树导出为无依赖的独立 HTML 文件                  |
+| 🚀 **一键 EdgeOne 部署** | 集成腾讯云 EdgeOne Pages，一键将作品集部署为公开访问站点（含自动生成访问凭证）                  |
+| 🔒 **工程化安全实践**     | BCrypt 加密 / Sa-Token JWT StateLess 鉴权 / SecureRandom 验证码 / 防账号枚举 / 逻辑删除 / 事务一致性 |
+| ⚡ **前端自动保存**         | 深度 watch + 800ms 防抖，编辑即持久化；保存期间变更通过 `pendingSave` 标志位避免丢失       |
+| 🧱 **零 UI 框架**       | 前端纯手写组件 + scoped 样式，无 Element/Ant Design 等依赖，体积可控               |
 
 ***
 
@@ -66,7 +66,7 @@
 | Java                   | 17     | record、var、switch 表达式等现代特性                     |
 | MyBatis-Plus           | 3.5.7  | ORM + 逻辑删除 + Lambda 查询                         |
 | MySQL                  | 8.0+   | 主数据存储（utf8mb4，JSON 列）                          |
-| jjwt                   | 0.11.5 | JWT 生成与解析（HS256）                               |
+| Sa-Token               | 1.38.0 | 鉴权框架（JWT StateLess 无状态模式，替代手写 JWT）             |
 | spring-security-crypto | -      | 仅引入 `BCryptPasswordEncoder`，不启用完整 Security 过滤链 |
 | Lombok                 | -      | 减少实体样板代码                                       |
 
@@ -90,8 +90,8 @@
 ┌─────────────────────────────────────────────────────────────┐
 │              Spring Boot 3  (context-path: /api)           │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │  JwtAuthenticationInterceptor                        │  │
-│  │  校验 token → 查库确认用户状态 → UserContext(ThreadLocal)│  │
+│  │  Sa-Token Interceptor                                │  │
+│  │  JWT StateLess 校验 → 查库确认用户状态 → UserContext(ThreadLocal)│  │
 │  └──────────────────────────────────────────────────────┘  │
 │  ┌─────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │ UserController│ │UserProfileCtrl│ │PortfolioCtrl 等  │  │
@@ -158,18 +158,36 @@ WorksShow/
 │       │   ├── WorksShowApplication.java
 │       │   ├── common/Result.java                  # 统一响应封装
 │       │   ├── config/
-│       │   │   ├── WebMvcConfig.java               #   JWT 拦截器注册 + CORS
+│       │   │   ├── WebMvcConfig.java               #   CORS 配置
 │       │   │   ├── SecurityConfig.java             #   BCryptPasswordEncoder Bean
-│       │   │   └── MybatisPlusConfig.java
+│       │   │   ├── MybatisPlusConfig.java          #   MyBatis-Plus 分页配置
+│       │   │   ├── SaTokenConfig.java              #   Sa-Token JWT StateLess 配置 + 拦截器
+│       │   │   └── StpInterfaceImpl.java           #   Sa-Token 权限/角色查询接口
 │       │   ├── controller/                         # 7 个 REST 控制器（含部署相关）
 │       │   ├── dto/                                # 请求 / 响应 DTO
+│       │   │   ├── CareerIntentionDTO.java         #   求职意向
+│       │   │   ├── CareerIntentionVO.java          #   求职意向响应
+│       │   │   ├── CustomDomainRequestDTO.java     #   自定义域名请求
+│       │   │   ├── CustomDomainVO.java             #   自定义域名响应
+│       │   │   ├── DeploymentRequestDTO.java       #   部署请求
+│       │   │   ├── DeploymentVO.java               #   部署响应
+│       │   │   ├── EdgeOneConfigRequestDTO.java    #   EdgeOne 配置请求
+│       │   │   ├── EdgeOneConfigVO.java            #   EdgeOne 配置响应
+│       │   │   ├── LoginRequest.java               #   登录请求
+│       │   │   ├── LoginResponse.java              #   登录响应（含 token）
+│       │   │   ├── PortfolioDataDTO.java           #   简历数据（模板渲染用）
+│       │   │   ├── PortfolioRequestDTO.java        #   简历实例请求
+│       │   │   ├── PortfolioVO.java                #   简历实例响应
+│       │   │   ├── RegisterRequest.java            #   注册请求
+│       │   │   ├── ResetPasswordRequest.java       #   重置密码请求
+│       │   │   ├── UpdateProfileRequest.java       #   更新档案请求
+│       │   │   ├── UserProfileDTO.java             #   用户档案
+│       │   │   └── UserVO.java                     #   用户信息响应
 │       │   ├── entity/                             # 10 个实体（含部署相关）
 │       │   ├── exception/                          # 全局异常处理
 │       │   ├── mapper/                             # MyBatis-Plus Mapper
 │       │   ├── security/
-│       │   │   ├── JwtUtils.java                   #   JWT 工具
-│       │   │   ├── JwtAuthenticationInterceptor.java
-│       │   │   └── UserContext.java                #   ThreadLocal 上下文
+│       │   │   └── UserContext.java                #   ThreadLocal 用户上下文
 │       │   └── service/impl/
 │       └── resources/
 │           ├── application.yml
@@ -241,20 +259,23 @@ user_skill 表       →  用户级技能（按分类，JSON 列）
 
 最终产物是**一个零依赖的 HTML 文件**，可直接拖进浏览器或部署到 GitHub Pages / Vercel / 任意静态服务器。
 
-### 4. JWT 鉴权与安全拦截器
+### 4. Sa-Token 鉴权与安全拦截器
+
+项目已从手写 JWT 重构为 **Sa-Token JWT StateLess（无状态）模式**，核心配置在 [SaTokenConfig.java](backend/src/main/java/com/worksshow/config/SaTokenConfig.java)：
 
 ```
-请求 →  JwtAuthenticationInterceptor.preHandle()
-   ├─ OPTIONS 预检 → 直接放行
-   ├─ resolveToken() 从 Authorization 头取 Bearer token
-   ├─ jwtUtils.parseAndValidate()  ← 复用，避免重复 HMAC 验签
+请求 →  SaInterceptor.handle()
+   ├─ StpUtil.checkLogin()         ← JWT 签名与过期校验，失败抛 NotLoginException
+   ├─ StpUtil.getLoginIdAsLong()   ← 从 JWT payload 中提取 userId（无状态模式，无需查会话）
    ├─ userService.getById(userId)  ← 查库确认用户当前状态
    │    （覆盖逻辑删除 / 账号禁用的实时生效，因为 getById 受 @TableLogic 影响）
-   ├─ UserContext.set(LoginUser)    ← ThreadLocal 注入
-   └─ afterCompletion → UserContext.clear()  ← 防止线程池复用串号
+   └─ 用户不存在或 status=0 → StpUtil.logout() + 抛异常
 ```
 
-**关键设计**：token 有效期内若用户被禁用或逻辑删除，拦截器查库会返回 null，立即拒绝访问——不依赖 token 过期。
+**关键设计**：
+- **JWT StateLess 模式**：token 自包含 userId 与 nickname，服务端不维护会话，最贴近原手写 JWT 实现
+- **实时状态校验**：token 有效期内若用户被禁用或逻辑删除，拦截器查库会返回 null，立即拒绝访问——不依赖 token 过期
+- **权限扩展**：[StpInterfaceImpl.java](backend/src/main/java/com/worksshow/config/StpInterfaceImpl.java) 预留权限/角色查询接口，后续可配合 `@SaCheckRole` / `@SaCheckPermission` 使用
 
 ### 5. 邮箱验证码安全设计（`EmailCodeServiceImpl`）
 
@@ -294,18 +315,18 @@ user_skill 表       →  用户级技能（按分类，JSON 列）
 
 10 张表，utf8mb4 字符集，使用 JSON 列存储嵌套数组（stats / socials / tags / items / 期望行业 / 期望城市）。
 
-| 表名                 | 说明          | 关键设计                                                                   |
-| ------------------ | ----------- | ---------------------------------------------------------------------- |
-| `user`             | 用户表         | BCrypt 密码；复合唯一索引 `(email, deleted)` / `(phone, deleted)` 解决逻辑删除后无法重新注册 |
-| `user_profile`     | 用户简历档案（1:1） | 懒创建；JSON 列存 stats/socials                                              |
-| `portfolio`        | 简历实例（模板实例）  | 仅 `user_id + template_id + name`，内容存于 user_*                         |
-| `user_work`        | 用户作品        | JSON 列存 tags；highlight 标记旗舰作品；sort_order 排序                           |
-| `user_experience`  | 用户经历        | `type` 字段区分 work / education，统一存储                                      |
-| `user_skill`       | 用户技能        | 按 category 分组，JSON 列存 items                                            |
-| `career_intention` | 求职意向（1:1）   | 期望行业/城市用 JSON 数组；薪资区间                                                  |
-| `user_edgeone_config` | EdgeOne 配置（1:1） | API Token AES 加密存储；永不返回前端；项目名明文存储                                   |
-| `custom_domain`    | 自定义域名（1:N）   | 可复用，一个域名关联多次部署；通过 deployment.path 子路径区分多页面                          |
-| `deployment`       | 部署记录（1:N）    | 部署状态、访问 URL、错误信息；关联 portfolio 与自定义域名；支持同步等待 CLI 执行完成                 |
+| 表名                    | 说明              | 关键设计                                                                   |
+| --------------------- | --------------- | ---------------------------------------------------------------------- |
+| `user`                | 用户表             | BCrypt 密码；复合唯一索引 `(email, deleted)` / `(phone, deleted)` 解决逻辑删除后无法重新注册 |
+| `user_profile`        | 用户简历档案（1:1）     | 懒创建；JSON 列存 stats/socials                                              |
+| `portfolio`           | 简历实例（模板实例）      | 仅 `user_id + template_id + name`，内容存于 user\_\*                         |
+| `user_work`           | 用户作品            | JSON 列存 tags；highlight 标记旗舰作品；sort\_order 排序                           |
+| `user_experience`     | 用户经历            | `type` 字段区分 work / education，统一存储                                      |
+| `user_skill`          | 用户技能            | 按 category 分组，JSON 列存 items                                            |
+| `career_intention`    | 求职意向（1:1）       | 期望行业/城市用 JSON 数组；薪资区间                                                  |
+| `user_edgeone_config` | EdgeOne 配置（1:1） | API Token AES 加密存储；永不返回前端；项目名明文存储                                      |
+| `custom_domain`       | 自定义域名（1:N）      | 可复用，一个域名关联多次部署；通过 deployment.path 子路径区分多页面                             |
+| `deployment`          | 部署记录（1:N）       | 部署状态、访问 URL、错误信息；关联 portfolio 与自定义域名；支持同步等待 CLI 执行完成                   |
 
 初始化脚本：[backend/src/main/resources/sql/schema.sql](backend/src/main/resources/sql/schema.sql)（使用 `CREATE TABLE IF NOT EXISTS`，可安全重复执行）。
 
@@ -313,7 +334,7 @@ user_skill 表       →  用户级技能（按分类，JSON 列）
 
 ## 🔌 API 接口概览
 
-所有接口前缀 `/api`，统一返回 `Result<T>`。
+所有接口前缀 `/api`，统一返回 `Result<T>`，鉴权基于 **Sa-Token JWT StateLess** 模式。
 
 ### 用户接口 `/api/user`
 
@@ -343,7 +364,7 @@ user_skill 表       →  用户级技能（按分类，JSON 列）
 | GET    | `/list` | 当前用户简历实例列表                  |
 | GET    | `/{id}` | 简历详情（实例元数据 + 用户档案内容）        |
 | POST   | `/`     | 创建实例（同模板去重，已存在则返回已有）        |
-| PUT    | `/{id}` | 更新（仅 name，template_id 不可变） |
+| PUT    | `/{id}` | 更新（仅 name，template\_id 不可变） |
 | DELETE | `/{id}` | 逻辑删除（用户档案不受影响）              |
 
 ### 求职意向接口 `/api/career-intention`
@@ -355,28 +376,28 @@ user_skill 表       →  用户级技能（按分类，JSON 列）
 
 ### EdgeOne 配置接口 `/api/edgeone-config`
 
-| 方法     | 路径  | 说明                          |
-| ------ | --- | --------------------------- |
+| 方法     | 路径  | 说明                              |
+| ------ | --- | ------------------------------- |
 | GET    | `/` | 获取当前用户配置（脱敏，不返回 API Token）      |
 | POST   | `/` | 保存 / 更新配置（API Token 入库前 AES 加密） |
-| DELETE | `/` | 删除配置（逻辑删除）                  |
+| DELETE | `/` | 删除配置（逻辑删除）                      |
 
 ### 自定义域名接口 `/api/custom-domain`
 
-| 方法     | 路径       | 说明                      |
-| ------ | -------- | ----------------------- |
-| GET    | `/list`  | 获取当前用户域名列表             |
-| POST   | `/`      | 新增域名                    |
-| PUT    | `/{id}`  | 更新域名（修改备注名）            |
-| DELETE | `/{id}`  | 删除域名（逻辑删除，不影响已部署页面）   |
+| 方法     | 路径      | 说明                  |
+| ------ | ------- | ------------------- |
+| GET    | `/list` | 获取当前用户域名列表          |
+| POST   | `/`     | 新增域名                |
+| PUT    | `/{id}` | 更新域名（修改备注名）         |
+| DELETE | `/{id}` | 删除域名（逻辑删除，不影响已部署页面） |
 
 ### 部署接口 `/api/deployment`
 
-| 方法   | 路径       | 说明                              |
-| ---- | -------- | ------------------------------- |
-| POST | `/`      | 部署简历到 EdgeOne Pages（传入渲染后的 HTML，同步等待 CLI 执行完成） |
-| GET  | `/list`  | 获取当前用户部署记录列表                   |
-| GET  | `/{id}`  | 获取部署详情（状态、访问 URL、错误信息）         |
+| 方法   | 路径      | 说明                                             |
+| ---- | ------- | ---------------------------------------------- |
+| POST | `/`     | 部署简历到 EdgeOne Pages（传入渲染后的 HTML，同步等待 CLI 执行完成） |
+| GET  | `/list` | 获取当前用户部署记录列表                                   |
+| GET  | `/{id}` | 获取部署详情（状态、访问 URL、错误信息）                         |
 
 ***
 
@@ -480,7 +501,7 @@ java -jar target/worksshow-backend-0.0.1-SNAPSHOT.jar
 2. **内容与模板解耦**：一份内容驱动多套模板，数据一致性高
 3. **单文件 HTML 导出**：Vue 离屏渲染 + DOM 序列化，无运行时依赖，可直接部署到任意静态托管
 4. **一键 EdgeOne 部署**：集成腾讯云 EdgeOne Pages，编辑器内一键部署为公开访问站点
-5. **完整的安全实践**：BCrypt / JWT / SecureRandom / 防账号枚举 / 逻辑删除 / 事务一致性 / 越权校验
+5. **完整的安全实践**：BCrypt / Sa-Token JWT StateLess / SecureRandom / 防账号枚举 / 逻辑删除 / 事务一致性 / 越权校验
 6. **工程化规范**：统一响应封装、全局异常处理、DTO 类型化、环境变量配置、可重复执行的 SQL 脚本
 7. **零 UI 框架**：纯手写组件，对 CSS 与组件设计有深度练习
 
@@ -508,3 +529,4 @@ mysql -u root -p < backend/src/main/resources/sql/schema.sql
 ```
 
 ***
+
