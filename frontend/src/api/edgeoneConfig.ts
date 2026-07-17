@@ -11,9 +11,11 @@ export interface EdgeOneConfigVO {
   updateTime: string
 }
 
-/** 保存/更新 EdgeOne 配置请求(明文 token,入库前加密) */
+/** 保存/更新 EdgeOne 配置请求(明文 token,入库前加密)
+ *  更新时 apiToken 可留空(仅更新 projectName);首次配置时必填。
+ */
 export interface EdgeOneConfigRequest {
-  apiToken: string
+  apiToken?: string
   projectName?: string
 }
 

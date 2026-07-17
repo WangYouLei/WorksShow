@@ -11,6 +11,8 @@ import {
 } from '@/api/auth'
 import type { UserInfo, UpdateProfileData, ChangePasswordData, ResetPasswordData } from '@/api/auth'
 import EdgeOneConfigPanel from '@/components/EdgeOneConfigPanel.vue'
+import CareerIntentionPanel from '@/editor/panels/CareerIntentionPanel.vue'
+import ProfilePanel from '@/editor/panels/ProfilePanel.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -236,7 +238,7 @@ onUnmounted(() => {
           :class="['tab-btn', { active: activeTab === 'portfolio' }]"
           @click="switchTab('portfolio')"
         >
-          简历管理
+          个人信息
         </button>
         <button
           :class="['tab-btn', { active: activeTab === 'career' }]"
@@ -346,20 +348,14 @@ onUnmounted(() => {
         </form>
       </div>
 
-      <!-- 简历管理 -->
+      <!-- 个人信息 -->
       <div v-if="activeTab === 'portfolio'" class="tab-content">
-        <div class="redirect-card">
-          <p class="redirect-desc">在编辑器中管理你的简历信息（个人信息、作品、技能、经历）。</p>
-          <button class="redirect-btn" @click="router.push('/')">前往模板选择 →</button>
-        </div>
+        <ProfilePanel />
       </div>
 
       <!-- 求职意向 -->
       <div v-if="activeTab === 'career'" class="tab-content">
-        <div class="redirect-card">
-          <p class="redirect-desc">在编辑器中管理你的求职意向（期望职位、薪资、城市等）。</p>
-          <button class="redirect-btn" @click="router.push('/')">前往模板选择 →</button>
-        </div>
+        <CareerIntentionPanel />
       </div>
 
       <!-- 部署配置 -->
@@ -440,6 +436,10 @@ onUnmounted(() => {
 }
 .tab-content {
   padding: 24px;
+}
+/* ef-panel 自带 padding,在 tab-content 内去除避免双重间距 */
+.tab-content :deep(.ef-panel) {
+  padding: 0;
 }
 .form {
   display: flex;

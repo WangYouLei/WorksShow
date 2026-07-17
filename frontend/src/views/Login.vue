@@ -42,7 +42,9 @@ const onSubmit = async () => {
     localStorage.setItem('works-show:token', result.token)
     const user = await getUserInfo()
     localStorage.setItem('works-show:user', JSON.stringify(user))
-    router.push('/')
+    // 支持 redirect 参数,登录后回到原页面
+    const redirect = (router.currentRoute.value.query.redirect as string) || '/'
+    router.push(redirect)
   } catch (e) {
     error.value = (e as Error).message
   } finally {

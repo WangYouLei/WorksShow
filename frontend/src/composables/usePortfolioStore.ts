@@ -1,6 +1,6 @@
 import { reactive, watch, readonly } from 'vue'
 import type { PortfolioData } from '@/templates/types'
-import { getTemplateDefaultData } from '@/templates/registry'
+import { getTemplateDefaultData, templates } from '@/templates/registry'
 import {
   listPortfolios,
   createPortfolio,
@@ -11,6 +11,7 @@ import {
   saveUserProfile,
   type BackendUserProfile,
 } from '@/api/userProfile'
+import type { Profile } from '@/data/types'
 
 /**
  * 全局缓存状态(所有模板共享同一份用户档案)。
@@ -45,6 +46,11 @@ const portfolioIds: Record<string, number> = {}
 /** 已确保创建过实例的模板集合(避免重复创建) */
 const ensuredTemplates = new Set<string>()
 
+/** profile 锁定标志:锁定时编辑器中的 profile 修改不会保存到服务端 */
+let profileLocked = false
+/** profile 快照:锁定时保存使用此快照而非当前 data.profile,解锁时恢复 */
+let profileSnapshot: Profile | null = null
+
 function clone<T>(v: T): T {
   return JSON.parse(JSON.stringify(v))
 }
@@ -75,9 +81,9 @@ function normalizeUserProfile(backend: BackendUserProfile): PortfolioData {
  *   <li>实例:首次进入某模板时自动创建 portfolio 实例(用于"我的简历"列表)</li>
  * </ul>
  *
- * @param templateId 模板ID(用于确保 portfolio 实例存在,数据本身与模板无关)
+ * @param templateId 模板ID(用于确保 portfolio 实例存在,数据本身与模板无关)。设置页等不需要创建实例的场景可不传。
  */
-export function usePortfolioStore(templateId: string): PortfolioData {
+export function usePortfolioStore(templateId?: string): PortfolioData {
   ensureCache(templateId)
   return state!.data
 }
@@ -85,16 +91,18 @@ export function usePortfolioStore(templateId: string): PortfolioData {
 /**
  * 初始化全局缓存(单例),加载用户档案 + 确保 portfolio 实例存在。
  */
-function ensureCache(templateId: string) {
+function ensureCache(templateId?: string) {
   if (state) {
     // 已有缓存,确保当前模板的 portfolio 实例存在
-    ensurePortfolioInstance(templateId)
+    if (templateId) ensurePortfolioInstance(templateId)
     return
   }
 
-  // 首次调用:用第一个模板的默认数据初始化(仅作占位,异步加载后会覆盖)
-  const def = getTemplateDefaultData(templateId)
-  if (!def) throw new Error(`模板 ${templateId} 未注册默认数据`)
+  // 首次调用:用模板的默认数据初始化(仅作占位,异步加载后会覆盖)
+  const tid = templateId || templates[0]?.id
+  if (!tid) throw new Error('没有已注册的模板')
+  const def = getTemplateDefaultData(tid)
+  if (!def) throw new Error(`模板 ${tid} 未注册默认数据`)
   const data = reactive(clone(def)) as PortfolioData
   state = reactive({ data, loaded: false, saving: false, lastSaved: null, saveError: false, loadError: false })
 
@@ -116,7 +124,7 @@ function ensureCache(templateId: string) {
   )
 
   // 确保当前模板的 portfolio 实例存在
-  ensurePortfolioInstance(templateId)
+  if (templateId) ensurePortfolioInstance(templateId)
 }
 
 /**
@@ -133,6 +141,8 @@ async function loadFromServer() {
     state!.data.experiences = normalized.experiences
     state!.data.skills = normalized.skills
     state!.loadError = false
+    // 更新 profile 快照(用于编辑器锁定时恢复)
+    profileSnapshot = clone(normalized.profile)
   } catch (e) {
     console.warn('[store] 从服务端加载用户档案失败,使用默认数据(保存将被阻止直到加载成功)', e)
     state!.loadError = true
@@ -190,14 +200,20 @@ async function saveToServer() {
   try {
     // 保存时不传 id(后端整体替换,会重新分配 id)
     const { data } = state
+    // profile 锁定时使用快照(编辑器中的 profile 修改不持久化)
+    const profileToSave = profileLocked && profileSnapshot ? profileSnapshot : data.profile
     await saveUserProfile({
-      profile: data.profile,
+      profile: profileToSave,
       works: data.works.map(({ id: _id, ...rest }) => rest),
       experiences: data.experiences.map(({ id: _id, ...rest }) => rest),
       skills: data.skills.map(({ id: _id, ...rest }) => rest),
     })
     state.saveError = false
     state.lastSaved = Date.now()
+    // 未锁定时更新快照为当前 profile(设置页保存后快照同步)
+    if (!profileLocked) {
+      profileSnapshot = clone(data.profile)
+    }
   } catch (e) {
     state.saveError = true
     console.error('[store] 保存用户档案失败', e)
@@ -274,6 +290,31 @@ export async function saveNow(_templateId: string): Promise<void> {
     saveTimer = null
   }
   await saveToServer()
+}
+
+/**
+ * 锁定/解锁 profile 持久化。
+ * <p>
+ * 编辑器使用:进入时锁定( profile 修改不保存到服务端,仅用于预览),
+ * 离开时解锁并从快照恢复 profile(丢弃编辑器中的临时修改)。
+ * 设置页不调用此函数(默认未锁定,修改会正常保存)。
+ *
+ * @param locked true=锁定(进入编辑器),false=解锁(离开编辑器)
+ */
+export function setProfileLocked(locked: boolean): void {
+  if (locked) {
+    // 锁定时:如果数据已加载,拍下当前 profile 快照
+    if (state && state.loaded && !state.loadError && state.data.profile) {
+      profileSnapshot = clone(state.data.profile)
+    }
+    profileLocked = true
+  } else {
+    // 解锁时:从快照恢复 profile(丢弃编辑器中的临时修改)
+    if (state && profileSnapshot) {
+      state.data.profile = clone(profileSnapshot)
+    }
+    profileLocked = false
+  }
 }
 
 /**

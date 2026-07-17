@@ -4,12 +4,14 @@ import cn.dev33.satoken.interceptor.SaInterceptor;
 import cn.dev33.satoken.jwt.StpLogicJwtForStateless;
 import cn.dev33.satoken.stp.StpLogic;
 import cn.dev33.satoken.stp.StpUtil;
+import com.worksshow.common.BusinessException;
 import com.worksshow.entity.User;
 import com.worksshow.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -65,8 +67,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
                     if (user == null || user.getStatus() == null || user.getStatus() == 0) {
                         log.warn("用户状态异常,拒绝访问: userId={}", userId);
                         StpUtil.logout();
-                        throw new cn.dev33.satoken.exception.NotLoginException(
-                                "用户不存在或已被禁用", null, cn.dev33.satoken.exception.NotLoginException.NOT_TOKEN);
+                        // 抛业务异常返回 403,避免与 NOT_TOKEN 语义混淆
+                        throw new BusinessException(HttpStatus.FORBIDDEN.value(), "账号已被禁用或不存在,请联系管理员");
                     }
                 }))
                 .addPathPatterns("/**")

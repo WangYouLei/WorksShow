@@ -20,8 +20,9 @@ public class DeploymentRequestDTO {
     @NotNull(message = "简历实例ID不能为空")
     private Long portfolioId;
 
-    /** 渲染后的完整 HTML 内容(由前端模板渲染产出) */
+    /** 渲染后的完整 HTML 内容(由前端模板渲染产出,限制 500KB 防止滥用) */
     @NotBlank(message = "部署内容(HTML)不能为空")
+    @Size(max = 500_000, message = "HTML 内容不能超过 500KB")
     private String html;
 
     /** EdgeOne 项目名(CLI -n 参数用,为空则用用户配置中的默认项目名) */

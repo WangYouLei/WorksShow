@@ -115,10 +115,21 @@ public class UserProfileServiceImpl implements UserProfileService {
     // ==================== 私有辅助方法 ====================
 
     /**
-     * 将 ProfileDTO 字段映射到 UserProfile 的 p_* 字段
+     * 将 ProfileDTO 字段映射到 UserProfile 的 p_* 字段。
+     * 整体替换语义:profileDTO 为 null 时清空所有 p_* 字段。
      */
     private void applyProfile(UserProfile profile, UserProfileDTO.ProfileDTO profileDTO) {
         if (profileDTO == null) {
+            profile.setPName(null);
+            profile.setPNameEn(null);
+            profile.setPTitle(null);
+            profile.setPTagline(null);
+            profile.setPBio(null);
+            profile.setPEmail(null);
+            profile.setPLocation(null);
+            profile.setPAvailability(null);
+            profile.setPStats(null);
+            profile.setPSocials(null);
             return;
         }
         profile.setPName(profileDTO.getName());

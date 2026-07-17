@@ -8,6 +8,7 @@ import com.worksshow.dto.RegisterRequest;
 import com.worksshow.dto.ResetPasswordRequest;
 import com.worksshow.dto.SendCodeRequest;
 import com.worksshow.dto.UpdateProfileRequest;
+import com.worksshow.dto.UserVO;
 import com.worksshow.entity.User;
 import com.worksshow.service.EmailCodeService;
 import com.worksshow.service.UserService;
@@ -82,17 +83,17 @@ public class UserController {
      * 获取当前登录用户信息(需携带 token)
      */
     @GetMapping("/info")
-    public Result<User> info() {
-        return Result.ok(userService.getCurrentUser());
+    public Result<UserVO> info() {
+        return Result.ok(UserVO.from(userService.getCurrentUser()));
     }
 
     /**
-     * 更新当前用户资料(昵称、头像、性别,需携带 token)
+     * 更新当前用户资料(昵称、性别,需携带 token)
      */
     @PutMapping("/info")
-    public Result<User> updateInfo(@Valid @RequestBody UpdateProfileRequest request) {
+    public Result<UserVO> updateInfo(@Valid @RequestBody UpdateProfileRequest request) {
         log.info("更新用户资料请求: nickname={}", request.getNickname());
-        return Result.ok("资料更新成功", userService.updateProfile(request));
+        return Result.ok("资料更新成功", UserVO.from(userService.updateProfile(request)));
     }
 
     /**

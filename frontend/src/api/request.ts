@@ -38,11 +38,14 @@ request.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // token 失效,清除并跳登录
+      // token 失效,清除并跳登录(携带 redirect 以便登录后回到原页面)
+      const currentPath = router.currentRoute.value.fullPath
       localStorage.removeItem('works-show:token')
       localStorage.removeItem('works-show:user')
-      // 使用 Vue Router 跳转,避免直接操作 window.location
-      router.push('/login').catch(() => {})
+      // 避免在 /login 页面再次跳转到 /login
+      if (router.currentRoute.value.name !== 'login') {
+        router.push({ path: '/login', query: { redirect: currentPath } }).catch(() => {})
+      }
     }
     const msg = error.response?.data?.message || error.message || '网络错误'
     return Promise.reject(new Error(msg))

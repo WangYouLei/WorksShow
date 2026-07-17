@@ -33,6 +33,7 @@ export interface UserInfo {
   email: string
   phone: string
   nickname: string
+  avatar: string | null
   gender: number
   status: number
   createTime: string

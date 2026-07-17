@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getTemplateMeta } from '@/templates/registry'
-import { usePortfolioStore, resetPortfolioStore, getSaveStatus, saveNow } from '@/composables/usePortfolioStore'
+import { usePortfolioStore, resetPortfolioStore, getSaveStatus, saveNow, setProfileLocked } from '@/composables/usePortfolioStore'
 import { downloadPortfolioHtml } from '@/composables/useExporter'
 import DeployDialog from '@/components/DeployDialog.vue'
 import PreviewFrame from './PreviewFrame.vue'
@@ -62,6 +62,10 @@ const onExport = async () => {
     exporting.value = false
   }
 }
+
+// 编辑器中 profile 修改不持久化(仅在设置页保存),求职意向同理
+onMounted(() => setProfileLocked(true))
+onUnmounted(() => setProfileLocked(false))
 </script>
 
 <template>
@@ -108,7 +112,7 @@ const onExport = async () => {
           <WorksPanel v-else-if="activeTab === 'works'" :template-id="props.templateId" />
           <SkillsPanel v-else-if="activeTab === 'skills'" :template-id="props.templateId" />
           <ExperiencesPanel v-else-if="activeTab === 'experiences'" :template-id="props.templateId" />
-          <CareerIntentionPanel v-else />
+          <CareerIntentionPanel v-else :no-save="true" />
         </div>
       </aside>
       <section class="editor-preview">

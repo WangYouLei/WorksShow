@@ -18,5 +18,6 @@ export async function downloadPortfolioHtml(
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  // 延迟释放 URL,避免某些浏览器中 click() 异步触发下载时 URL 已失效
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }

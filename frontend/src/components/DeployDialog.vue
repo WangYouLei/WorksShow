@@ -111,7 +111,8 @@ const copyUrl = async () => {
     copied.value = true
     setTimeout(() => (copied.value = false), 2000)
   } catch {
-    // 剪贴板失败时回退:选中输入框
+    // 剪贴板失败时提示用户手动复制
+    error.value = '复制失败,请手动选中链接复制'
   }
 }
 

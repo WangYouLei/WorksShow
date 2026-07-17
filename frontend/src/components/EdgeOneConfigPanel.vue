@@ -30,8 +30,10 @@ const loadConfig = async () => {
 }
 
 const onSave = async () => {
-  if (!form.apiToken.trim()) {
-    error.value = 'API Token 不能为空'
+  // 首次配置必须填写 apiToken;更新时 apiToken 可留空(仅更新 projectName)
+  const isFirstTime = !config.value
+  if (isFirstTime && !form.apiToken.trim()) {
+    error.value = '首次配置必须填写 API Token'
     return
   }
   loading.value = true
@@ -39,7 +41,8 @@ const onSave = async () => {
   success.value = ''
   try {
     await saveEdgeOneConfig({
-      apiToken: form.apiToken,
+      // apiToken 留空时传 undefined,后端仅更新 projectName
+      apiToken: form.apiToken.trim() || undefined,
       projectName: form.projectName.trim() || undefined,
     })
     form.apiToken = ''
@@ -87,7 +90,7 @@ onMounted(loadConfig)
 
     <form class="form" @submit.prevent="onSave">
       <label class="field">
-        <span class="field-label">API Token{{ config ? '(重新填写以更新)' : '' }}</span>
+        <span class="field-label">API Token{{ config ? '(留空则不修改,填写则更新)' : '' }}</span>
         <input v-model="form.apiToken" type="password" class="field-input" placeholder="请输入 EdgeOne Pages API Token" autocomplete="off" />
       </label>
       <label class="field">

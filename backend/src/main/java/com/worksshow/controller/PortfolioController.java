@@ -3,7 +3,7 @@ package com.worksshow.controller;
 import com.worksshow.common.Result;
 import com.worksshow.dto.PortfolioDataDTO;
 import com.worksshow.dto.PortfolioRequestDTO;
-import com.worksshow.entity.Portfolio;
+import com.worksshow.dto.PortfolioVO;
 import com.worksshow.service.PortfolioService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -48,9 +48,9 @@ public class PortfolioController {
      * 获取当前用户简历实例列表
      */
     @GetMapping("/list")
-    public Result<List<Portfolio>> list() {
+    public Result<List<PortfolioVO>> list() {
         log.info("获取简历列表请求");
-        return Result.ok(portfolioService.listMine());
+        return Result.ok(portfolioService.listMine().stream().map(PortfolioVO::from).toList());
     }
 
     /**
@@ -66,18 +66,18 @@ public class PortfolioController {
      * 创建简历实例
      */
     @PostMapping
-    public Result<Portfolio> create(@Valid @RequestBody PortfolioRequestDTO dto) {
+    public Result<PortfolioVO> create(@Valid @RequestBody PortfolioRequestDTO dto) {
         log.info("创建简历请求: name={}, templateId={}", dto.getName(), dto.getTemplateId());
-        return Result.ok("创建成功", portfolioService.create(dto));
+        return Result.ok("创建成功", PortfolioVO.from(portfolioService.create(dto)));
     }
 
     /**
      * 更新简历实例(仅名称,templateId 不可变)
      */
     @PutMapping("/{id}")
-    public Result<Portfolio> update(@PathVariable Long id, @Valid @RequestBody PortfolioRequestDTO dto) {
+    public Result<PortfolioVO> update(@PathVariable Long id, @Valid @RequestBody PortfolioRequestDTO dto) {
         log.info("更新简历请求: id={}", id);
-        return Result.ok("更新成功", portfolioService.update(id, dto));
+        return Result.ok("更新成功", PortfolioVO.from(portfolioService.update(id, dto)));
     }
 
     /**

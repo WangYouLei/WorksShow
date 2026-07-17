@@ -2,7 +2,7 @@ package com.worksshow.controller;
 
 import com.worksshow.common.Result;
 import com.worksshow.dto.CareerIntentionDTO;
-import com.worksshow.entity.CareerIntention;
+import com.worksshow.dto.CareerIntentionVO;
 import com.worksshow.service.CareerIntentionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -39,17 +39,17 @@ public class CareerIntentionController {
      * 未填写时返回 data=null,前端按空对象渲染。
      */
     @GetMapping
-    public Result<CareerIntention> get() {
+    public Result<CareerIntentionVO> get() {
         log.info("获取求职意向请求");
-        return Result.ok(careerIntentionService.getMine());
+        return Result.ok(CareerIntentionVO.from(careerIntentionService.getMine()));
     }
 
     /**
      * 保存/更新求职意向(upsert)
      */
     @PutMapping
-    public Result<CareerIntention> save(@Valid @RequestBody CareerIntentionDTO dto) {
+    public Result<CareerIntentionVO> save(@Valid @RequestBody CareerIntentionDTO dto) {
         log.info("保存求职意向请求: expectedPosition={}", dto.getExpectedPosition());
-        return Result.ok("保存成功", careerIntentionService.save(dto));
+        return Result.ok("保存成功", CareerIntentionVO.from(careerIntentionService.save(dto)));
     }
 }

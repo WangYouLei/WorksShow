@@ -2,7 +2,7 @@ package com.worksshow.controller;
 
 import com.worksshow.common.Result;
 import com.worksshow.dto.CustomDomainRequestDTO;
-import com.worksshow.entity.CustomDomain;
+import com.worksshow.dto.CustomDomainVO;
 import com.worksshow.service.CustomDomainService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -45,27 +45,27 @@ public class CustomDomainController {
      * 获取当前用户域名列表
      */
     @GetMapping("/list")
-    public Result<List<CustomDomain>> list() {
+    public Result<List<CustomDomainVO>> list() {
         log.info("获取域名列表请求");
-        return Result.ok(customDomainService.listMine());
+        return Result.ok(customDomainService.listMine().stream().map(CustomDomainVO::from).toList());
     }
 
     /**
      * 新增域名
      */
     @PostMapping
-    public Result<CustomDomain> create(@Valid @RequestBody CustomDomainRequestDTO dto) {
+    public Result<CustomDomainVO> create(@Valid @RequestBody CustomDomainRequestDTO dto) {
         log.info("新增域名请求: domain={}", dto.getDomain());
-        return Result.ok("创建成功", customDomainService.create(dto));
+        return Result.ok("创建成功", CustomDomainVO.from(customDomainService.create(dto)));
     }
 
     /**
      * 更新域名
      */
     @PutMapping("/{id}")
-    public Result<CustomDomain> update(@PathVariable Long id, @Valid @RequestBody CustomDomainRequestDTO dto) {
+    public Result<CustomDomainVO> update(@PathVariable Long id, @Valid @RequestBody CustomDomainRequestDTO dto) {
         log.info("更新域名请求: id={}", id);
-        return Result.ok("更新成功", customDomainService.update(id, dto));
+        return Result.ok("更新成功", CustomDomainVO.from(customDomainService.update(id, dto)));
     }
 
     /**

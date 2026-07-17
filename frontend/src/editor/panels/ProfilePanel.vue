@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { usePortfolioStore } from '@/composables/usePortfolioStore'
 
-const props = defineProps<{ templateId: string }>()
+const props = defineProps<{ templateId?: string }>()
 const store = usePortfolioStore(props.templateId)
 
 const addStat = () => {

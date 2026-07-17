@@ -109,7 +109,9 @@ public class EdgeOnePagesClient {
 
             int exitCode = process.exitValue();
             String stdout = output.toString();
-            log.info("EdgeOne CLI 输出(exitCode={}):\n{}", exitCode, stdout);
+            // 过滤可能包含 API Token 的行(CLI 失败时可能回显命令行,含 -t <token>)
+            String safeLog = sanitizeLog(stdout);
+            log.info("EdgeOne CLI 输出(exitCode={}):\n{}", exitCode, safeLog);
 
             if (exitCode != 0) {
                 return new EdgeOneDeployResult(false, null, null,
@@ -141,6 +143,23 @@ public class EdgeOnePagesClient {
     private String extract(String text, Pattern pattern) {
         Matcher m = pattern.matcher(text);
         return m.find() ? m.group(1) : null;
+    }
+
+    /**
+     * 过滤日志中可能包含 API Token 的行。
+     * CLI 失败时可能回显完整命令行(含 -t &lt;token&gt;),记录前需脱敏。
+     */
+    private String sanitizeLog(String stdout) {
+        return Arrays.stream(stdout.split("\n"))
+                .map(line -> {
+                    // 含 "-t " 参数的行(命令回显),将 token 部分替换为 ****
+                    if (line.contains(" -t ")) {
+                        return line.replaceAll("-t\\s+\\S+", "-t ****");
+                    }
+                    return line;
+                })
+                .reduce((a, b) -> a + "\n" + b)
+                .orElse("");
     }
 
     /** 提取错误信息(取输出的末尾若干行,避免过长) */

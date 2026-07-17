@@ -17,7 +17,7 @@ import java.util.Base64;
 /**
  * AES 对称加解密工具
  * <p>
- * 用于加解密用户存储的 EdgeOne API 凭证(SecretId/SecretKey)。
+ * 用于加解密用户存储的 EdgeOne API Token(单个 Token,非 SecretId/SecretKey 对)。
  * 采用 AES/CBC/PKCS5Padding,每次加密生成随机 IV 并拼接在密文前,
  * 最终 Base64 编码输出。密钥由配置项 edgeone.encrypt-key 提供
  * (生产环境从环境变量 EDGEONE_ENCRYPT_KEY 注入),经 SHA-256 派生为

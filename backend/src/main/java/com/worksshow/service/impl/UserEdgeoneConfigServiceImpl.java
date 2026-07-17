@@ -43,7 +43,8 @@ public class UserEdgeoneConfigServiceImpl extends ServiceImpl<UserEdgeoneConfigM
         }
         EdgeOneConfigVO vo = new EdgeOneConfigVO();
         vo.setId(config.getId());
-        vo.setApiTokenMasked(maskToken(aesUtils.decrypt(config.getApiToken())));
+        // 直接掩码密文,无需解密(避免明文暴露,符合"only a masked display string is returned"约束)
+        vo.setApiTokenMasked(maskToken(config.getApiToken()));
         vo.setProjectName(config.getProjectName());
         vo.setCreateTime(config.getCreateTime());
         vo.setUpdateTime(config.getUpdateTime());
@@ -54,6 +55,7 @@ public class UserEdgeoneConfigServiceImpl extends ServiceImpl<UserEdgeoneConfigM
      * 保存或更新配置(upsert)
      * <p>
      * 明文 API Token 入库前 AES 加密。
+     * 更新场景下 apiToken 可留空(仅更新 projectName);首次配置时 apiToken 必填。
      */
     @Override
     public UserEdgeoneConfig saveOrUpdate(EdgeOneConfigRequestDTO dto) {
@@ -61,18 +63,26 @@ public class UserEdgeoneConfigServiceImpl extends ServiceImpl<UserEdgeoneConfigM
         UserEdgeoneConfig existing = getOne(new LambdaQueryWrapper<UserEdgeoneConfig>()
                 .eq(UserEdgeoneConfig::getUserId, userId));
 
-        String encToken = aesUtils.encrypt(dto.getApiToken());
+        boolean hasToken = dto.getApiToken() != null && !dto.getApiToken().isBlank();
 
         if (existing != null) {
-            existing.setApiToken(encToken);
+            // 更新:apiToken 留空则仅更新 projectName
+            if (hasToken) {
+                existing.setApiToken(aesUtils.encrypt(dto.getApiToken()));
+            }
             existing.setProjectName(dto.getProjectName());
             updateById(existing);
-            log.info("更新EdgeOne配置: userId={}", userId);
+            log.info("更新EdgeOne配置: userId={}, tokenChanged={}", userId, hasToken);
             return existing;
+        }
+
+        // 首次配置:apiToken 必填
+        if (!hasToken) {
+            throw new BusinessException(400, "首次配置必须填写 API Token");
         }
         UserEdgeoneConfig config = new UserEdgeoneConfig();
         config.setUserId(userId);
-        config.setApiToken(encToken);
+        config.setApiToken(aesUtils.encrypt(dto.getApiToken()));
         config.setProjectName(dto.getProjectName());
         save(config);
         log.info("保存EdgeOne配置: userId={}", userId);
@@ -114,7 +124,8 @@ public class UserEdgeoneConfigServiceImpl extends ServiceImpl<UserEdgeoneConfigM
     // ==================== 私有辅助方法 ====================
 
     /**
-     * API Token 脱敏:保留首尾各 4 位,中间用 **** 替代
+     * API Token(密文)脱敏:保留首尾各 4 位,中间用 **** 替代。
+     * 仅用于前端展示"已配置"状态,无需还原明文。
      */
     private String maskToken(String token) {
         if (token == null || token.isEmpty()) {

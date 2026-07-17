@@ -8,8 +8,11 @@ import type { CareerIntention } from '@/api/career'
  * <p>
  * 数据为用户级别(不绑定具体模板/简历),独立于 usePortfolioStore。
  * - 挂载时从服务端拉取,有则填充,无则使用默认空值
- * - 深度 watch + 800ms 防抖,自动调用 PUT /career-intention upsert
+ * - noSave=false(设置页):深度 watch + 800ms 防抖,自动调用 PUT /career-intention upsert
+ * - noSave=true(编辑器):仅加载展示,不自动保存
  */
+
+const props = defineProps<{ noSave?: boolean }>()
 const defaultData = (): CareerIntention => ({
   jobStatus: 0,
   expectedPosition: '',
@@ -90,12 +93,13 @@ const save = async () => {
 
 onMounted(load)
 
-// 深度监听,800ms 防抖保存
+// 深度监听,800ms 防抖保存(noSave 模式下跳过)
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 watch(
   form,
   () => {
     if (loading.value) return
+    if (props.noSave) return
     if (saveTimer) clearTimeout(saveTimer)
     saveTimer = setTimeout(save, 800)
   },
