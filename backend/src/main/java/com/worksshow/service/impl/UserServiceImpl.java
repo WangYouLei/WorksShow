@@ -1,5 +1,6 @@
 package com.worksshow.service.impl;
 
+import cn.dev33.satoken.context.SaHolder;
 import cn.dev33.satoken.stp.SaLoginModel;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -15,6 +16,8 @@ import com.worksshow.exception.BusinessException;
 import com.worksshow.mapper.UserMapper;
 import com.worksshow.security.UserContext;
 import com.worksshow.service.EmailCodeService;
+import com.worksshow.service.RefreshTokenService;
+import com.worksshow.service.TokenBlacklistService;
 import com.worksshow.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +42,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     private final EmailCodeService emailCodeService;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final RefreshTokenService refreshTokenService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     /**
      * 用户注册
@@ -116,8 +121,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         StpUtil.login(user.getId(),
                 new SaLoginModel().setExtra("nickname", user.getNickname()));
         String token = StpUtil.getTokenValue();
+
+        // 5. 生成 refresh token(7天有效)
+        String refreshToken = refreshTokenService.generateToken(user.getId());
+
         log.info("用户登录成功: id={}, nickname={}", user.getId(), user.getNickname());
-        return new LoginResponse(token, user.getId(), user.getNickname());
+        return new LoginResponse(token, refreshToken, user.getId(), user.getNickname());
     }
 
     /**
@@ -192,7 +201,51 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 更新为新密码
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         updateById(user);
+
+        // 改密后主动失效所有 access token 和 refresh token
+        invalidateUserTokens(userId);
+
         log.info("用户密码修改成功: userId={}", userId);
+    }
+
+    /**
+     * 用户登出
+     * <p>
+     * 将当前 access token 加入黑名单,删除所有 refresh token。
+     */
+    @Override
+    public void logout() {
+        Long userId = UserContext.getCurrentUserId();
+        if (userId == null) {
+            return;
+        }
+
+        // 将当前 token 加入黑名单
+        String token = SaHolder.getRequest().getHeader("Authorization");
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+            tokenBlacklistService.blacklist(token, 86400);
+        }
+
+        // 删除所有 refresh token
+        refreshTokenService.deleteByUserId(userId);
+
+        log.info("用户登出成功: userId={}", userId);
+    }
+
+    /**
+     * 主动失效用户所有 token(改密/重置密码时调用)
+     */
+    private void invalidateUserTokens(Long userId) {
+        // 将当前 token 加入黑名单
+        String token = SaHolder.getRequest().getHeader("Authorization");
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+            tokenBlacklistService.blacklist(token, 86400);
+        }
+        // 删除所有 refresh token
+        refreshTokenService.deleteByUserId(userId);
+        log.info("用户所有 token 已失效: userId={}", userId);
     }
 
     /**
@@ -226,6 +279,38 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 更新为新密码
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         updateById(user);
+
+        // 重置密码后主动失效所有 token
+        invalidateUserTokens(user.getId());
+
         log.info("用户通过邮箱验证码重置密码成功: userId={}, email={}", user.getId(), email);
+    }
+
+    /**
+     * 使用 refresh token 刷新获取新的 access token
+     */
+    @Override
+    public LoginResponse refreshToken(String refreshToken) {
+        Long userId = refreshTokenService.validateToken(refreshToken);
+        if (userId == null) {
+            throw new BusinessException(401, "refresh token 无效或已过期,请重新登录");
+        }
+
+        User user = getById(userId);
+        if (user == null || user.getStatus() == null || user.getStatus() == 0) {
+            throw new BusinessException(403, "账号已被禁用或不存在");
+        }
+
+        // 删除旧 refresh token
+        refreshTokenService.deleteByUserId(userId);
+
+        // 生成新的 access token 和 refresh token
+        StpUtil.login(userId,
+                new SaLoginModel().setExtra("nickname", user.getNickname()));
+        String newAccessToken = StpUtil.getTokenValue();
+        String newRefreshToken = refreshTokenService.generateToken(userId);
+
+        log.info("refresh token 刷新成功: userId={}", userId);
+        return new LoginResponse(newAccessToken, newRefreshToken, userId, user.getNickname());
     }
 }

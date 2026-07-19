@@ -38,6 +38,9 @@ public class User {
     /** 昵称(展示名,用户自定义) */
     private String nickname;
 
+    /** 头像URL */
+    private String avatar;
+
     /** 性别:0-未知 1-男 2-女 */
     private Integer gender;
 

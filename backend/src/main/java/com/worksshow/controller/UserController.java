@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
  *   <li>POST /api/user/sendCode   发送邮箱验证码(公开)</li>
  *   <li>POST /api/user/register   注册(公开)</li>
  *   <li>POST /api/user/login      登录(公开)</li>
+ *   <li>POST /api/user/refresh-token  刷新 token(公开)</li>
  *   <li>GET  /api/user/info        获取当前用户(需登录)</li>
  *   <li>PUT  /api/user/info        更新用户资料(需登录)</li>
  *   <li>PUT  /api/user/password    修改密码(需登录)</li>
@@ -127,14 +128,26 @@ public class UserController {
     }
 
     /**
+     * 使用 refresh token 刷新获取新的 access token(公开接口)
+     * <p>
+     * access token 有效期 15 分钟,过期后需调用此接口刷新。
+     * 请求体: { "refreshToken": "xxx" }
+     */
+    @PostMapping("/refresh-token")
+    public Result<LoginResponse> refreshToken(@RequestBody java.util.Map<String, String> request) {
+        String refreshToken = request.get("refreshToken");
+        log.info("刷新 token 请求");
+        return Result.ok("token 刷新成功", userService.refreshToken(refreshToken));
+    }
+
+    /**
      * 退出登录
      * <p>
-     * StateLess 模式下服务端不存储会话,客户端清除本地 token 即可,
-     * 此处调用 StpUtil.logout() 保持语义完整,未来切换会话模式可无缝生效。
+     * 将当前 access token 加入黑名单,删除所有 refresh token。
      */
     @PostMapping("/logout")
     public Result<Void> logout() {
-        cn.dev33.satoken.stp.StpUtil.logout();
+        userService.logout();
         return Result.ok("已退出登录", null);
     }
 }

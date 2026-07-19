@@ -69,4 +69,19 @@ public interface UserService extends IService<User> {
      * @param request 重置参数(邮箱、验证码、新密码)
      */
     void resetPasswordByEmail(ResetPasswordRequest request);
+
+    /**
+     * 用户登出
+     * <p>
+     * 将当前 access token 加入黑名单,删除所有 refresh token。
+     */
+    void logout();
+
+    /**
+     * 使用 refresh token 刷新获取新的 access token
+     *
+     * @param refreshToken refresh token 值
+     * @return 登录响应(含新 access token 和新 refresh token)
+     */
+    LoginResponse refreshToken(String refreshToken);
 }

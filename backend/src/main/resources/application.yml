@@ -9,6 +9,18 @@ server:
 spring:
   application:
     name: worksshow-backend
+  # Redis 配置 - 用于 token 黑名单存储
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: 0
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
   # 数据源配置 - 请根据本地 MySQL 实际情况修改 username / password
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -65,8 +77,8 @@ sa-token:
   token-name: Authorization
   # token 前缀: 请求头格式为 "Authorization: Bearer xxx",sa-token 自动剥离前缀
   token-prefix: Bearer
-  # token 有效期(单位: 秒): 24 小时
-  timeout: 86400
+  # token 有效期(单位: 秒): 15 分钟(缩短有效期降低泄漏窗口,配合 refresh token 使用)
+  timeout: 900
   # token 最低活跃频率(单位: 秒),-1 代表不限制,永不冻结
   active-timeout: -1
   # 是否允许同一账号多地同时登录 (true 允许一起登录,false 新登录挤掉旧登录)
