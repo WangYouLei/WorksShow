@@ -18,7 +18,7 @@
 
 **WorksShow** 是一个面向开发者与设计师的「个人品牌站点」构建工具。用户只需在可视化编辑器中填写一次个人信息、作品、经历与技能，即可在 **6 套风格迥异的模板** 间自由切换预览，并支持 **一键导出为单文件 HTML**（含内联 CSS + 原生 JS runtime，可直接部署到任意静态托管平台）。
 
-项目采用前后端分离架构，后端提供完整的用户体系（注册、登录、邮箱验证码、密码找回）、用户档案管理与简历实例管理，所有接口均通过 JWT 拦截器鉴权。
+项目采用前后端分离架构，后端提供完整的用户体系（注册、登录、邮箱验证码、密码找回）、用户档案管理与简历实例管理，所有接口均通过 **Sa-Token JWT StateLess** 模式鉴权。
 
 ### ✨ 核心亮点
 
@@ -156,23 +156,30 @@ WorksShow/
 │   └── src/main/
 │       ├── java/com/worksshow/
 │       │   ├── WorksShowApplication.java
-│       │   ├── common/Result.java                  # 统一响应封装
+│       │   ├── common/
+│       │   │   ├── Result.java                      # 统一响应封装
+│       │   │   └── AesUtils.java                    # AES 加密工具（EdgeOne API Token 加密）
 │       │   ├── config/
 │       │   │   ├── WebMvcConfig.java               #   CORS 配置
 │       │   │   ├── SecurityConfig.java             #   BCryptPasswordEncoder Bean
 │       │   │   ├── MybatisPlusConfig.java          #   MyBatis-Plus 分页配置
 │       │   │   ├── SaTokenConfig.java              #   Sa-Token JWT StateLess 配置 + 拦截器
 │       │   │   └── StpInterfaceImpl.java           #   Sa-Token 权限/角色查询接口
+│       │   ├── client/
+│       │   │   └── EdgeOnePagesClient.java         #   EdgeOne Pages CLI 客户端（部署执行）
 │       │   ├── controller/                         # 7 个 REST 控制器（含部署相关）
 │       │   ├── dto/                                # 请求 / 响应 DTO
 │       │   │   ├── CareerIntentionDTO.java         #   求职意向
 │       │   │   ├── CareerIntentionVO.java          #   求职意向响应
+│       │   │   ├── ChangePasswordRequest.java      #   修改密码请求
 │       │   │   ├── CustomDomainRequestDTO.java     #   自定义域名请求
 │       │   │   ├── CustomDomainVO.java             #   自定义域名响应
+│       │   │   ├── DecryptedEdgeOneConfig.java     #   解密后的 EdgeOne 配置
 │       │   │   ├── DeploymentRequestDTO.java       #   部署请求
 │       │   │   ├── DeploymentVO.java               #   部署响应
 │       │   │   ├── EdgeOneConfigRequestDTO.java    #   EdgeOne 配置请求
 │       │   │   ├── EdgeOneConfigVO.java            #   EdgeOne 配置响应
+│       │   │   ├── EdgeOneDeployResult.java        #   EdgeOne 部署结果
 │       │   │   ├── LoginRequest.java               #   登录请求
 │       │   │   ├── LoginResponse.java              #   登录响应（含 token）
 │       │   │   ├── PortfolioDataDTO.java           #   简历数据（模板渲染用）
@@ -180,10 +187,11 @@ WorksShow/
 │       │   │   ├── PortfolioVO.java                #   简历实例响应
 │       │   │   ├── RegisterRequest.java            #   注册请求
 │       │   │   ├── ResetPasswordRequest.java       #   重置密码请求
+│       │   │   ├── SendCodeRequest.java            #   发送验证码请求
 │       │   │   ├── UpdateProfileRequest.java       #   更新档案请求
 │       │   │   ├── UserProfileDTO.java             #   用户档案
 │       │   │   └── UserVO.java                     #   用户信息响应
-│       │   ├── entity/                             # 10 个实体（含部署相关）
+│       │   ├── entity/                             # 11 个实体（含部署相关）
 │       │   ├── exception/                          # 全局异常处理
 │       │   ├── mapper/                             # MyBatis-Plus Mapper
 │       │   ├── security/
@@ -191,7 +199,9 @@ WorksShow/
 │       │   └── service/impl/
 │       └── resources/
 │           ├── application.yml
-│           └── sql/schema.sql                      # 数据库初始化脚本
+│           └── sql/
+│               ├── schema.sql                       # 数据库初始化脚本（主表）
+│               └── refresh_token.sql               # Refresh Token 表初始化脚本
 └── README.md
 ```
 
@@ -277,7 +287,31 @@ user_skill 表       →  用户级技能（按分类，JSON 列）
 - **实时状态校验**：token 有效期内若用户被禁用或逻辑删除，拦截器查库会返回 null，立即拒绝访问——不依赖 token 过期
 - **权限扩展**：[StpInterfaceImpl.java](backend/src/main/java/com/worksshow/config/StpInterfaceImpl.java) 预留权限/角色查询接口，后续可配合 `@SaCheckRole` / `@SaCheckPermission` 使用
 
-### 5. 邮箱验证码安全设计（`EmailCodeServiceImpl`）
+### 5. Refresh Token 与 Token Blacklist 机制
+
+为提升安全性，项目引入 Refresh Token 机制，将 access token 有效期缩短至 15 分钟，降低泄漏窗口：
+
+```
+登录流程：
+POST /login → 返回 access_token(15min) + refresh_token(7天)
+           → refresh_token 存入数据库 refresh_token 表
+
+刷新流程：
+POST /refresh → 校验 refresh_token 是否有效且未过期
+              → 生成新的 access_token + 新的 refresh_token（滚动刷新）
+              → 旧 refresh_token 加入黑名单，新 token 存入数据库
+
+登出流程：
+POST /logout → 当前 access_token 加入黑名单
+             → 关联的 refresh_token 逻辑删除
+```
+
+**关键设计**：
+- **黑名单机制**：`TokenBlacklistServiceImpl` 使用内存 `ConcurrentHashMap` 存储已失效的 token，拦截器在校验 JWT 后额外检查黑名单
+- **滚动刷新**：每次刷新生成新的 refresh_token，旧 token 失效，防止 token 泄露后被持续滥用
+- **定时清理**：过期的 refresh_token 记录通过定时任务清理
+
+### 6. 邮箱验证码安全设计（`EmailCodeServiceImpl`）
 
 | 安全点   | 实现                                                         |
 | ----- | ---------------------------------------------------------- |
@@ -289,7 +323,7 @@ user_skill 表       →  用户级技能（按分类，JSON 列）
 | 事务一致性 | 注册方法 `@Transactional`，先 `save(user)` 后 `verifyCode`，验证失败回滚 |
 | 内存兜底  | 当前用 `ConcurrentHashMap`，注释说明生产环境应替换为 Redis                 |
 
-### 6. 全局异常处理与统一响应
+### 7. 全局异常处理与统一响应
 
 所有接口统一返回 `Result<T>`（`code` / `message` / `data`），`GlobalExceptionHandler` 统一捕获：
 
@@ -301,7 +335,7 @@ user_skill 表       →  用户级技能（按分类，JSON 列）
 | `HttpMessageNotReadableException` | 400 | JSON 解析失败                 |
 | `Exception`                       | 500 | 兜底，隐藏堆栈防信息泄露              |
 
-### 7. 前端自动保存（`usePortfolioStore`）
+### 8. 前端自动保存（`usePortfolioStore`）
 
 - 全局单例 `reactive` data，所有模板共享同一份用户档案
 - `watch(data, ..., { deep: true })` + 800ms 防抖触发 `saveToServer`
@@ -313,7 +347,7 @@ user_skill 表       →  用户级技能（按分类，JSON 列）
 
 ## 🗄️ 数据库设计
 
-10 张表，utf8mb4 字符集，使用 JSON 列存储嵌套数组（stats / socials / tags / items / 期望行业 / 期望城市）。
+11 张表，utf8mb4 字符集，使用 JSON 列存储嵌套数组（stats / socials / tags / items / 期望行业 / 期望城市）。
 
 | 表名                    | 说明              | 关键设计                                                                   |
 | --------------------- | --------------- | ---------------------------------------------------------------------- |
@@ -327,8 +361,13 @@ user_skill 表       →  用户级技能（按分类，JSON 列）
 | `user_edgeone_config` | EdgeOne 配置（1:1） | API Token AES 加密存储；永不返回前端；项目名明文存储                                      |
 | `custom_domain`       | 自定义域名（1:N）      | 可复用，一个域名关联多次部署；通过 deployment.path 子路径区分多页面                             |
 | `deployment`          | 部署记录（1:N）       | 部署状态、访问 URL、错误信息；关联 portfolio 与自定义域名；支持同步等待 CLI 执行完成                   |
+| `refresh_token`       | Refresh Token（1:N）  | UUID 存储；过期时间 7 天；支持 access token 过期后刷新获取新 token                                   |
 
-初始化脚本：[backend/src/main/resources/sql/schema.sql](backend/src/main/resources/sql/schema.sql)（使用 `CREATE TABLE IF NOT EXISTS`，可安全重复执行）。
+初始化脚本：
+- [backend/src/main/resources/sql/schema.sql](backend/src/main/resources/sql/schema.sql)（主表）
+- [backend/src/main/resources/sql/refresh_token.sql](backend/src/main/resources/sql/refresh_token.sql)（Refresh Token 表）
+
+均使用 `CREATE TABLE IF NOT EXISTS`，可安全重复执行。
 
 ***
 
@@ -342,13 +381,14 @@ user_skill 表       →  用户级技能（按分类，JSON 列）
 | ---- | ---------------------------- | --- | -------------------- |
 | POST | `/sendCode`                  | 公开  | 发送邮箱验证码（已注册邮箱静默跳过）   |
 | POST | `/register`                  | 公开  | 注册（事务：先存用户后验证码）      |
-| POST | `/login`                     | 公开  | 登录，支持手机号 / 邮箱，返回 JWT |
+| POST | `/login`                     | 公开  | 登录，支持手机号 / 邮箱，返回 token |
 | GET  | `/info`                      | 需登录 | 获取当前用户               |
 | PUT  | `/info`                      | 需登录 | 更新昵称 / 性别            |
 | PUT  | `/password`                  | 需登录 | 修改密码                 |
 | POST | `/forgot-password/send-code` | 公开  | 发送重置密码验证码            |
 | POST | `/forgot-password/reset`     | 公开  | 邮箱验证码重置密码            |
-| POST | `/logout`                    | 需登录 | 退出登录（无状态，客户端清 token） |
+| POST | `/refresh`                   | 需登录 | 刷新 token（access_token 过期后获取新 token） |
+| POST | `/logout`                    | 需登录 | 退出登录（token 加入黑名单，refresh_token 逻辑删除） |
 
 ### 用户档案接口 `/api/user-profile`
 
@@ -422,6 +462,7 @@ cd WorksShow
 
 ```bash
 mysql -u root -p < backend/src/main/resources/sql/schema.sql
+mysql -u root -p < backend/src/main/resources/sql/refresh_token.sql
 ```
 
 ### 3. 配置后端
@@ -526,6 +567,7 @@ mvn test                      # 运行测试
 
 # 数据库初始化
 mysql -u root -p < backend/src/main/resources/sql/schema.sql
+mysql -u root -p < backend/src/main/resources/sql/refresh_token.sql
 ```
 
 ***
