@@ -297,17 +297,17 @@ POST /login → 返回 access_token(15min) + refresh_token(7天)
            → refresh_token 存入数据库 refresh_token 表
 
 刷新流程：
-POST /refresh → 校验 refresh_token 是否有效且未过期
+POST /refresh-token → 校验 refresh_token 是否有效且未过期
               → 生成新的 access_token + 新的 refresh_token（滚动刷新）
               → 旧 refresh_token 加入黑名单，新 token 存入数据库
 
 登出流程：
-POST /logout → 当前 access_token 加入黑名单
-             → 关联的 refresh_token 逻辑删除
+POST /logout → 当前 access_token 加入黑名单(TTL 与 access token 有效期一致)
+             → 删除该用户所有 refresh_token(切断滚动刷新链路)
 ```
 
 **关键设计**：
-- **黑名单机制**：`TokenBlacklistServiceImpl` 使用内存 `ConcurrentHashMap` 存储已失效的 token，拦截器在校验 JWT 后额外检查黑名单
+- **黑名单机制**：`TokenBlacklistServiceImpl` 使用 Redis 存储已失效的 token(黑名单 TTL 与 access token 有效期 15 分钟一致),拦截器在校验 JWT 后额外检查黑名单。注:无状态 JWT 无法枚举用户在其他设备已签发的 token,改密/重置密码时只能黑名单当前请求的 token 并删除全部 refresh token,其他设备的 access token 将在 15 分钟内自然失效
 - **滚动刷新**：每次刷新生成新的 refresh_token，旧 token 失效，防止 token 泄露后被持续滥用
 - **定时清理**：过期的 refresh_token 记录通过定时任务清理
 
@@ -316,12 +316,12 @@ POST /logout → 当前 access_token 加入黑名单
 | 安全点   | 实现                                                         |
 | ----- | ---------------------------------------------------------- |
 | 随机性   | `SecureRandom` 生成 6 位数字，防止预测                               |
-| 有效期   | 5 分钟，过期后 `cleanupExpiredCodes` 定时任务清理                      |
+| 有效期   | 5 分钟,Redis TTL 自动过期,无需定时清理任务                            |
 | 频率限制  | 60 秒内不可重发，返回剩余秒数                                           |
-| 一次性使用 | `ConcurrentHashMap.remove(key, value)` 原子移除，防并发竞态          |
+| 一次性使用 | 验证成功时 `DEL` 原子删除;验证失败 `HINCRBY` 原子递增尝试次数,超限作废 |
 | 防账号枚举 | 注册时已注册邮箱「静默跳过」；找回密码时未注册邮箱「静默跳过」                            |
 | 事务一致性 | 注册方法 `@Transactional`，先 `save(user)` 后 `verifyCode`，验证失败回滚 |
-| 内存兜底  | 当前用 `ConcurrentHashMap`，注释说明生产环境应替换为 Redis                 |
+| 基于 Redis | 验证码存于 Redis Hash,与 token 黑名单共用同一 Redis,支持多实例部署      |
 
 ### 7. 全局异常处理与统一响应
 
@@ -387,8 +387,8 @@ POST /logout → 当前 access_token 加入黑名单
 | PUT  | `/password`                  | 需登录 | 修改密码                 |
 | POST | `/forgot-password/send-code` | 公开  | 发送重置密码验证码            |
 | POST | `/forgot-password/reset`     | 公开  | 邮箱验证码重置密码            |
-| POST | `/refresh`                   | 需登录 | 刷新 token（access_token 过期后获取新 token） |
-| POST | `/logout`                    | 需登录 | 退出登录（token 加入黑名单，refresh_token 逻辑删除） |
+| POST | `/refresh-token`             | 需登录 | 刷新 token（access_token 过期后获取新 token） |
+| POST | `/logout`                    | 需登录 | 退出登录（token 加入黑名单，删除所有 refresh_token） |
 
 ### 用户档案接口 `/api/user-profile`
 

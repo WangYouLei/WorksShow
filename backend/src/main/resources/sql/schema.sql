@@ -46,20 +46,29 @@ CREATE TABLE IF NOT EXISTS `user` (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '用户表';
 
 -- ============================================================
--- 数据库迁移: 移除 username 字段 + 手机号字段升级(已存在 user 表时执行)
+-- 数据库迁移: 移除 username 字段 + 手机号字段升级(仅旧库执行,全新库跳过)
 -- ------------------------------------------------------------
 -- 说明:
+--   此块为从旧版本升级的迁移语句。上方的 CREATE TABLE IF NOT EXISTS `user`
+--   已保证全新库表结构正确(含 phone NOT NULL + uk_phone 复合唯一索引),
+--   全新库无需也不应执行这些 ALTER(对象不存在会报错,导致脚本中断)。
+--   仅当在已存在旧版 user 表(含 username 字段、phone 可空)的库上升级时,
+--   取消下方注释后按需执行;部分语句在对象不存在时报错,按实际情况注释跳过。
 --   1. 登录账号改为手机号/邮箱,移除 username 字段及其唯一索引
 --   2. 手机号从可选改为必填,并添加唯一索引
 --   3. nickname 从可选改为必填
--- 若表中已有 NULL 手机号/nickname 数据,需先补充再执行。
+--   若表中已有 NULL 手机号/nickname 数据,需先补充再执行。
 -- ============================================================
+/* 旧库迁移语句(全新库默认整块注释,旧库取消此块注释后执行;新库执行会因旧字段/旧索引不存在而报错)
+
 ALTER TABLE `user` DROP INDEX `uk_username`;
 ALTER TABLE `user` DROP COLUMN `username`;
 ALTER TABLE `user` MODIFY COLUMN `phone` VARCHAR(20) NOT NULL COMMENT '手机号(登录账号之一)';
 ALTER TABLE `user` MODIFY COLUMN `nickname` VARCHAR(50) NOT NULL COMMENT '昵称(展示名,用户自定义)';
 -- 若 uk_phone 索引已存在会报错,可先执行: DROP INDEX `uk_phone` ON `user`;
 ALTER TABLE `user` ADD UNIQUE KEY `uk_phone` (`phone`, `deleted`);
+
+*/ -- 迁移块结束
 
 -- ============================================================
 -- 说明: 此处不预置测试用户(避免 BCrypt 密钥哈希不一致问题)
@@ -346,11 +355,10 @@ CREATE TABLE IF NOT EXISTS `custom_domain` (
 --       每次部署生成一条记录,关联一个简历实例。
 --       - custom_domain_id: 可选,关联已保存的自定义域名
 --         NULL 表示使用 EdgeOne 默认分配的域名
---       - path: 域名下的子路径,同一域名下区分不同页面
---         (如 /portfolio1),仅当使用自定义域名时有意义
---       - deploy_url: 最终完整访问URL
---         (如 myresume.edgeone.app/portfolio1)
---       - 部署为异步过程,前端轮询 status 获取结果
+--       - path: 域名下子路径字段(保留),当前未使用
+--         (EdgeOne CLI 不支持单项目多页面路径部署,一个项目=一个站点=一个域名)
+--       - deploy_url: 最终完整访问URL(如 myresume.edgeone.app)
+--       - 部署为同步过程:后端调用 EdgeOne CLI 阻塞等待完成后返回结果
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `deployment` (
     `id`                BIGINT       NOT NULL AUTO_INCREMENT              COMMENT '主键ID',
@@ -360,7 +368,7 @@ CREATE TABLE IF NOT EXISTS `deployment` (
     `project_name`      VARCHAR(100) NOT NULL                            COMMENT '部署项目名称(用户自定义,展示用)',
     `description`       VARCHAR(500)          DEFAULT NULL               COMMENT '部署描述(用户可选填写)',
     `custom_domain_id`  BIGINT                DEFAULT NULL               COMMENT '关联自定义域名ID(关联 custom_domain.id,NULL表示用EdgeOne默认域名)',
-    `path`              VARCHAR(200)          DEFAULT NULL               COMMENT '域名下子路径(同一域名区分多页面,如/portfolio1)',
+    `path`              VARCHAR(200)          DEFAULT NULL               COMMENT '域名下子路径(保留字段,当前未使用:EdgeOne CLI不支持路径式多页面部署)',
     `status`            TINYINT      DEFAULT 0                          COMMENT '部署状态:0-部署中 1-成功 2-失败',
     `deploy_url`        VARCHAR(500)          DEFAULT NULL               COMMENT '部署成功后的完整访问URL(如myresume.edgeone.app/portfolio1)',
     `error_message`     VARCHAR(1000)         DEFAULT NULL               COMMENT '部署失败时的错误信息',

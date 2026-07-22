@@ -40,6 +40,7 @@ const onSubmit = async () => {
   try {
     const result = await login(form)
     localStorage.setItem('works-show:token', result.token)
+    localStorage.setItem('works-show:refreshToken', result.refreshToken)
     const user = await getUserInfo()
     localStorage.setItem('works-show:user', JSON.stringify(user))
     // 支持 redirect 参数,登录后回到原页面

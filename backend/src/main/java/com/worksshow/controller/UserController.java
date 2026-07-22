@@ -4,6 +4,7 @@ import com.worksshow.common.Result;
 import com.worksshow.dto.ChangePasswordRequest;
 import com.worksshow.dto.LoginRequest;
 import com.worksshow.dto.LoginResponse;
+import com.worksshow.dto.RefreshTokenRequest;
 import com.worksshow.dto.RegisterRequest;
 import com.worksshow.dto.ResetPasswordRequest;
 import com.worksshow.dto.SendCodeRequest;
@@ -134,10 +135,9 @@ public class UserController {
      * 请求体: { "refreshToken": "xxx" }
      */
     @PostMapping("/refresh-token")
-    public Result<LoginResponse> refreshToken(@RequestBody java.util.Map<String, String> request) {
-        String refreshToken = request.get("refreshToken");
+    public Result<LoginResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         log.info("刷新 token 请求");
-        return Result.ok("token 刷新成功", userService.refreshToken(refreshToken));
+        return Result.ok("token 刷新成功", userService.refreshToken(request.getRefreshToken()));
     }
 
     /**

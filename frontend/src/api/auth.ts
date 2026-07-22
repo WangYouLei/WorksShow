@@ -23,6 +23,7 @@ export interface RegisterData {
 /** 登录响应 */
 export interface LoginResult {
   token: string
+  refreshToken: string
   userId: number
   nickname: string
 }
@@ -99,7 +100,7 @@ export function resetPassword(data: ResetPasswordData) {
   return request.post<void>('/user/forgot-password/reset', data) as unknown as Promise<void>
 }
 
-/** 退出登录(服务端无状态,仅清除本地 token) */
+/** 退出登录(服务端将当前 token 加入黑名单并删除 refresh token,前端同时清除本地登录态) */
 export function logout() {
   return request.post<void>('/user/logout') as unknown as Promise<void>
 }

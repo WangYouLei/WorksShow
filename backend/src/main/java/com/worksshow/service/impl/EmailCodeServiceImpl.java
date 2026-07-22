@@ -8,22 +8,22 @@ import com.worksshow.service.EmailCodeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
-import java.util.Iterator;
+import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 邮箱验证码服务实现
  * <p>
- * 使用内存 ConcurrentHashMap 存储验证码,5分钟过期,60秒发送频率限制。
- * 定时任务每5分钟清理过期条目,防止内存泄漏。
- * 生产环境建议替换为 Redis 实现,支持分布式与自动过期。
+ * 使用 Redis Hash 存储验证码,5分钟自动过期(Redis TTL),60秒发送频率限制。
+ * 验证码校验:原子递增尝试次数(HINCRBY)+ 原子删除(DEL)保证一次性使用。
+ * 基于 Redis 实现,支持多实例部署(与 token 黑名单共用同一 Redis)。
  *
  * @author WorksShow
  */
@@ -34,12 +34,22 @@ public class EmailCodeServiceImpl implements EmailCodeService {
 
     private final JavaMailSender mailSender;
     private final UserMapper userMapper;
+    private final StringRedisTemplate redisTemplate;
 
     /** 发件人邮箱(从配置文件 spring.mail.username 读取) */
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    /** 验证码有效期: 5分钟(毫秒) */
+    /** Redis key 前缀 */
+    private static final String KEY_PREFIX = "email:code:";
+    /** Hash 字段:验证码 */
+    private static final String FIELD_CODE = "code";
+    /** Hash 字段:发送时间戳(毫秒,用于频率限制) */
+    private static final String FIELD_SEND_TIME = "sendTime";
+    /** Hash 字段:已尝试次数 */
+    private static final String FIELD_ATTEMPTS = "attempts";
+
+    /** 验证码有效期: 5分钟(毫秒),作为 Redis TTL */
     private static final long CODE_EXPIRE_MS = 5 * 60 * 1000;
 
     /** 验证码长度 */
@@ -54,17 +64,9 @@ public class EmailCodeServiceImpl implements EmailCodeService {
     /** 密码学安全随机数生成器(验证码生成) */
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
-    /** 验证码存储: key=email, value=CodeEntry */
-    private final Map<String, CodeEntry> codeStore = new ConcurrentHashMap<>();
-
-    /**
-     * 验证码条目(内部记录类)
-     *
-     * @param code       验证码
-     * @param expireTime 过期时间戳(毫秒)
-     * @param sendTime   发送时间戳(毫秒)
-     */
-    private record CodeEntry(String code, long expireTime, long sendTime, int attempts) {}
+    private String key(String email) {
+        return KEY_PREFIX + email;
+    }
 
     @Override
     public void sendCode(String email) {
@@ -95,20 +97,31 @@ public class EmailCodeServiceImpl implements EmailCodeService {
      * 注册与重置密码共用此逻辑。
      */
     private void generateAndSendCode(String email) {
+        String redisKey = key(email);
+
         // 频率限制: 60秒内不可重复发送
-        CodeEntry existing = codeStore.get(email);
-        if (existing != null && System.currentTimeMillis() - existing.sendTime() < SEND_INTERVAL_MS) {
-            long remaining = (SEND_INTERVAL_MS - (System.currentTimeMillis() - existing.sendTime())) / 1000;
-            log.warn("验证码发送过于频繁: email={}, 剩余{}秒", email, remaining);
-            throw new BusinessException(429, "验证码已发送,请" + remaining + "秒后重试");
+        Object sendTimeObj = redisTemplate.opsForHash().get(redisKey, FIELD_SEND_TIME);
+        if (sendTimeObj != null) {
+            long sendTime = Long.parseLong(sendTimeObj.toString());
+            long elapsed = System.currentTimeMillis() - sendTime;
+            if (elapsed < SEND_INTERVAL_MS) {
+                long remaining = (SEND_INTERVAL_MS - elapsed) / 1000;
+                log.warn("验证码发送过于频繁: email={}, 剩余{}秒", email, remaining);
+                throw new BusinessException(429, "验证码已发送,请" + remaining + "秒后重试");
+            }
         }
 
         // 生成6位数字验证码(使用 SecureRandom 防止预测)
         String code = generateCode();
 
-        // 存储验证码(5分钟有效)
+        // 存储验证码(Redis Hash,5分钟 TTL 自动过期,无需定时清理任务)
         long now = System.currentTimeMillis();
-        codeStore.put(email, new CodeEntry(code, now + CODE_EXPIRE_MS, now, 0));
+        Map<String, String> fields = new HashMap<>();
+        fields.put(FIELD_CODE, code);
+        fields.put(FIELD_SEND_TIME, String.valueOf(now));
+        fields.put(FIELD_ATTEMPTS, "0");
+        redisTemplate.opsForHash().putAll(redisKey, fields);
+        redisTemplate.expire(redisKey, Duration.ofMillis(CODE_EXPIRE_MS));
 
         // 发送邮件
         try {
@@ -123,7 +136,7 @@ public class EmailCodeServiceImpl implements EmailCodeService {
             log.info("验证码发送成功: email={}", email);
         } catch (Exception e) {
             // 发送失败,移除已存储的验证码,避免占用频率限制
-            codeStore.remove(email);
+            redisTemplate.delete(redisKey);
             log.error("验证码发送失败: email={}", email, e);
             throw new BusinessException(500, "验证码发送失败,请检查邮箱配置或稍后重试");
         }
@@ -131,64 +144,36 @@ public class EmailCodeServiceImpl implements EmailCodeService {
 
     @Override
     public void verifyCode(String email, String code) {
-        long now = System.currentTimeMillis();
-        CodeEntry entry = codeStore.get(email);
+        String redisKey = key(email);
+        Map<Object, Object> entries = redisTemplate.opsForHash().entries(redisKey);
 
-        // 未发送验证码
-        if (entry == null) {
-            log.warn("验证码校验失败,未发送验证码: email={}", email);
+        // 未发送验证码 / 已过期(Redis TTL 到期自动删除,entries 为空即视为过期)
+        if (entries.isEmpty()) {
+            log.warn("验证码校验失败,未发送或已过期: email={}", email);
             throw new BusinessException(400, "请先获取验证码");
         }
 
-        // 已过期
-        if (now > entry.expireTime()) {
-            codeStore.remove(email);
-            log.warn("验证码校验失败,已过期: email={}", email);
-            throw new BusinessException(400, "验证码已过期,请重新获取");
-        }
+        String storedCode = entries.get(FIELD_CODE).toString();
 
-        // 验证码不匹配:递增尝试次数,超过阈值则作废验证码
-        if (!entry.code().equals(code)) {
-            int attempts = entry.attempts() + 1;
-            if (attempts >= MAX_VERIFY_ATTEMPTS) {
-                codeStore.remove(email);
+        // 验证码不匹配:原子递增尝试次数(HINCRBY),超过阈值则作废验证码
+        if (!storedCode.equals(code)) {
+            Long attempts = redisTemplate.opsForHash().increment(redisKey, FIELD_ATTEMPTS, 1);
+            if (attempts != null && attempts >= MAX_VERIFY_ATTEMPTS) {
+                redisTemplate.delete(redisKey);
                 log.warn("验证码校验失败,尝试次数超限,验证码已作废: email={}, attempts={}", email, attempts);
                 throw new BusinessException(400, "验证码错误次数过多,请重新获取");
             }
-            codeStore.put(email, new CodeEntry(entry.code(), entry.expireTime(), entry.sendTime(), attempts));
             log.warn("验证码校验失败,验证码错误: email={}, attempts={}", email, attempts);
             throw new BusinessException(400, "验证码错误");
         }
 
-        // 验证成功,原子性移除验证码(一次性使用)
-        // 使用 remove(key, value) 确保移除的是当前校验的那个条目,防止并发竞态
-        boolean removed = codeStore.remove(email, entry);
-        if (!removed) {
+        // 验证成功,原子性删除验证码(一次性使用)
+        Boolean removed = redisTemplate.delete(redisKey);
+        if (!Boolean.TRUE.equals(removed)) {
             log.warn("验证码校验异常: 并发重复验证,email={}", email);
             throw new BusinessException(400, "验证码已使用");
         }
         log.info("验证码校验成功: email={}", email);
-    }
-
-    /**
-     * 定时清理过期验证码,每5分钟执行一次,防止内存泄漏。
-     * 处理"请求了验证码但从未验证"的条目。
-     */
-    @Scheduled(fixedRate = CODE_EXPIRE_MS)
-    public void cleanupExpiredCodes() {
-        long now = System.currentTimeMillis();
-        int removed = 0;
-        Iterator<Map.Entry<String, CodeEntry>> it = codeStore.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, CodeEntry> entry = it.next();
-            if (now > entry.getValue().expireTime()) {
-                it.remove();
-                removed++;
-            }
-        }
-        if (removed > 0) {
-            log.info("定时清理过期验证码: 移除{}条,剩余{}条", removed, codeStore.size());
-        }
     }
 
     /**

@@ -145,11 +145,10 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     /**
-     * 整体替换作品:逻辑删除旧记录 + 批量插入新记录
+     * 整体替换作品:物理删除旧记录 + 批量插入新记录(避免软删除数据累积)
      */
     private List<UserWork> replaceWorks(Long userId, List<UserProfileDTO.WorkDTO> works) {
-        userWorkMapper.delete(new LambdaQueryWrapper<UserWork>()
-                .eq(UserWork::getUserId, userId));
+        userWorkMapper.deleteByUserIdPhysically(userId);
         if (works == null || works.isEmpty()) {
             return List.of();
         }
@@ -175,11 +174,10 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     /**
-     * 整体替换经历:逻辑删除旧记录 + 批量插入新记录
+     * 整体替换经历:物理删除旧记录 + 批量插入新记录(避免软删除数据累积)
      */
     private List<UserExperience> replaceExperiences(Long userId, List<UserProfileDTO.ExperienceDTO> experiences) {
-        userExperienceMapper.delete(new LambdaQueryWrapper<UserExperience>()
-                .eq(UserExperience::getUserId, userId));
+        userExperienceMapper.deleteByUserIdPhysically(userId);
         if (experiences == null || experiences.isEmpty()) {
             return List.of();
         }
@@ -201,11 +199,10 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     /**
-     * 整体替换技能:逻辑删除旧记录 + 批量插入新记录
+     * 整体替换技能:物理删除旧记录 + 批量插入新记录(避免软删除数据累积)
      */
     private List<UserSkill> replaceSkills(Long userId, List<UserProfileDTO.SkillDTO> skills) {
-        userSkillMapper.delete(new LambdaQueryWrapper<UserSkill>()
-                .eq(UserSkill::getUserId, userId));
+        userSkillMapper.deleteByUserIdPhysically(userId);
         if (skills == null || skills.isEmpty()) {
             return List.of();
         }

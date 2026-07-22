@@ -188,10 +188,17 @@ const backToChangePassword = () => {
   success.value = ''
 }
 
-const onLogout = () => {
-  localStorage.removeItem('works-show:token')
-  localStorage.removeItem('works-show:user')
-  router.push('/login')
+const onLogout = async () => {
+  try {
+    await logout()
+  } catch {
+    // 服务端登出失败不阻塞前端退出
+  } finally {
+    localStorage.removeItem('works-show:token')
+    localStorage.removeItem('works-show:refreshToken')
+    localStorage.removeItem('works-show:user')
+    router.push('/login')
+  }
 }
 
 const switchTab = (tab: typeof activeTab.value) => {

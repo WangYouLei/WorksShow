@@ -1,6 +1,5 @@
 package com.worksshow.config;
 
-import cn.dev33.satoken.context.SaHolder;
 import cn.dev33.satoken.interceptor.SaInterceptor;
 import cn.dev33.satoken.jwt.StpLogicJwtForStateless;
 import cn.dev33.satoken.stp.StpLogic;
@@ -9,6 +8,7 @@ import com.worksshow.exception.BusinessException;
 import com.worksshow.entity.User;
 import com.worksshow.service.TokenBlacklistService;
 import com.worksshow.service.UserService;
+import com.worksshow.security.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -61,11 +61,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new SaInterceptor(handle -> {
-                    // 1. 获取请求中的 token
-                    String token = SaHolder.getRequest().getHeader("Authorization");
-                    if (token != null && token.startsWith("Bearer ")) {
-                        token = token.substring(7);
-                    }
+                    // 1. 获取请求中的 token(剥离 Bearer 前缀)
+                    String token = UserContext.getCurrentToken();
                     // 2. 黑名单校验:已被主动失效的 token(登出/改密)直接拒绝
                     if (token != null && tokenBlacklistService.isBlacklisted(token)) {
                         log.warn("token 已被加入黑名单: {}", token);

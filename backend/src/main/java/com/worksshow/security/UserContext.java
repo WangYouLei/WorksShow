@@ -1,5 +1,6 @@
 package com.worksshow.security;
 
+import cn.dev33.satoken.context.SaHolder;
 import cn.dev33.satoken.exception.NotLoginException;
 import cn.dev33.satoken.stp.StpUtil;
 
@@ -39,6 +40,19 @@ public class UserContext {
         } catch (NotLoginException e) {
             return null;
         }
+    }
+
+    /**
+     * 获取当前请求的 access token(已剥离 "Bearer " 前缀)。
+     * <p>
+     * 供登出/改密时将当前 token 加入黑名单使用。未携带 token 时返回 null。
+     */
+    public static String getCurrentToken() {
+        String token = SaHolder.getRequest().getHeader("Authorization");
+        if (token != null && token.startsWith("Bearer ")) {
+            return token.substring(7);
+        }
+        return token;
     }
 
     /**

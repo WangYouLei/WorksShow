@@ -1,6 +1,5 @@
 package com.worksshow.service.impl;
 
-import cn.dev33.satoken.context.SaHolder;
 import cn.dev33.satoken.stp.SaLoginModel;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -21,6 +20,7 @@ import com.worksshow.service.TokenBlacklistService;
 import com.worksshow.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +44,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private final BCryptPasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
     private final TokenBlacklistService tokenBlacklistService;
+
+    /** access token 有效期(秒),从 sa-token.timeout 读取,黑名单 TTL 与之保持一致 */
+    @Value("${sa-token.timeout:900}")
+    private long accessTokenTimeoutSeconds;
 
     /**
      * 用户注册
@@ -202,7 +206,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         updateById(user);
 
-        // 改密后主动失效所有 access token 和 refresh token
+        // 改密后主动失效当前 access token 并删除所有 refresh token
         invalidateUserTokens(userId);
 
         log.info("用户密码修改成功: userId={}", userId);
@@ -220,32 +224,34 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             return;
         }
 
-        // 将当前 token 加入黑名单
-        String token = SaHolder.getRequest().getHeader("Authorization");
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7);
-            tokenBlacklistService.blacklist(token, 86400);
+        // 将当前 token 加入黑名单(TTL 与 access token 有效期一致)
+        String token = UserContext.getCurrentToken();
+        if (token != null) {
+            tokenBlacklistService.blacklist(token, accessTokenTimeoutSeconds);
         }
 
-        // 删除所有 refresh token
+        // 删除所有 refresh token(滚动刷新链路一并切断)
         refreshTokenService.deleteByUserId(userId);
 
         log.info("用户登出成功: userId={}", userId);
     }
 
     /**
-     * 主动失效用户所有 token(改密/重置密码时调用)
+     * 主动失效当前 access token 并删除所有 refresh token(改密/重置密码时调用)。
+     * <p>
+     * 注:无状态 JWT 无法枚举用户在其他设备已签发的 access token,故只能黑名单
+     * 当前请求的 token 并删除全部 refresh token(切断滚动刷新);其他设备已签发
+     * 的 access token 将在其有效期(默认15分钟)结束后自然失效。
      */
     private void invalidateUserTokens(Long userId) {
-        // 将当前 token 加入黑名单
-        String token = SaHolder.getRequest().getHeader("Authorization");
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7);
-            tokenBlacklistService.blacklist(token, 86400);
+        // 将当前 token 加入黑名单(TTL 与 access token 有效期一致)
+        String token = UserContext.getCurrentToken();
+        if (token != null) {
+            tokenBlacklistService.blacklist(token, accessTokenTimeoutSeconds);
         }
-        // 删除所有 refresh token
+        // 删除所有 refresh token(切断滚动刷新链路)
         refreshTokenService.deleteByUserId(userId);
-        log.info("用户所有 token 已失效: userId={}", userId);
+        log.info("当前 token 已黑名单并删除所有 refresh token: userId={}", userId);
     }
 
     /**
