@@ -66,6 +66,7 @@
 | Java                   | 17     | record、var、switch 表达式等现代特性                     |
 | MyBatis-Plus           | 3.5.7  | ORM + 逻辑删除 + Lambda 查询                         |
 | MySQL                  | 8.0+   | 主数据存储（utf8mb4，JSON 列）                          |
+| Redis                  | -      | token 黑名单 + 邮箱验证码存储，支持多实例部署                    |
 | Sa-Token               | 1.38.0 | 鉴权框架（JWT StateLess 无状态模式，替代手写 JWT）             |
 | spring-security-crypto | -      | 仅引入 `BCryptPasswordEncoder`，不启用完整 Security 过滤链 |
 | Lombok                 | -      | 减少实体样板代码                                       |
@@ -80,7 +81,7 @@
 │  Vue 3 SPA (Vite dev / 静态部署)                            │
 │  ┌────────────┐  ┌────────────┐  ┌────────────────────┐    │
 │  │ 模板画廊    │  │ 编辑器     │  │ 登录/注册/账号     │    │
-│  │ Gallery    │  │ 左表单+右预览│  │ JWT 存 localStorage │    │
+│  │ Gallery    │  │ 左表单+右预览│  │ token 存 localStorage │    │
 │  └────────────┘  └────────────┘  └────────────────────┘    │
 └──────────────────────────┬──────────────────────────────────┘
                            │  Axios  baseURL=/api
@@ -106,7 +107,10 @@
 │              MySQL  (works_show, utf8mb4)                   │
 │  user / user_profile / portfolio / user_work /             │
 │  user_experience / user_skill / career_intention /         │
-│  user_edgeone_config / custom_domain / deployment          │
+│  user_edgeone_config / custom_domain / deployment /        │
+│  refresh_token                                             │
+└─────────────────────────────────────────────────────────────┘
+│  Redis  (token 黑名单 / 邮箱验证码)                          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -187,6 +191,7 @@ WorksShow/
 │       │   │   ├── PortfolioVO.java                #   简历实例响应
 │       │   │   ├── RegisterRequest.java            #   注册请求
 │       │   │   ├── ResetPasswordRequest.java       #   重置密码请求
+│       │   │   ├── RefreshTokenRequest.java        #   刷新 token 请求
 │       │   │   ├── SendCodeRequest.java            #   发送验证码请求
 │       │   │   ├── UpdateProfileRequest.java       #   更新档案请求
 │       │   │   ├── UserProfileDTO.java             #   用户档案
@@ -387,7 +392,7 @@ POST /logout → 当前 access_token 加入黑名单(TTL 与 access token 有效
 | PUT  | `/password`                  | 需登录 | 修改密码                 |
 | POST | `/forgot-password/send-code` | 公开  | 发送重置密码验证码            |
 | POST | `/forgot-password/reset`     | 公开  | 邮箱验证码重置密码            |
-| POST | `/refresh-token`             | 需登录 | 刷新 token（access_token 过期后获取新 token） |
+| POST | `/refresh-token`             | 公开  | 刷新 token（access_token 过期后获取新 token） |
 | POST | `/logout`                    | 需登录 | 退出登录（token 加入黑名单，删除所有 refresh_token） |
 
 ### 用户档案接口 `/api/user-profile`
@@ -449,6 +454,7 @@ POST /logout → 当前 access_token 加入黑名单(TTL 与 access token 有效
 - Java 17
 - Maven 3.8+
 - MySQL 8.0+（需支持 JSON 类型）
+- Redis 6.0+（用于 token 黑名单与邮箱验证码存储）
 - 一个 SMTP 邮箱（用于发送验证码，以 QQ 邮箱为例）
 
 ### 1. 克隆仓库
@@ -470,9 +476,18 @@ mysql -u root -p < backend/src/main/resources/sql/refresh_token.sql
 编辑 `backend/src/main/resources/application.yml`，**生产环境务必通过环境变量注入敏感配置**：
 
 ```bash
+# 数据库
 export DB_USERNAME=your_db_user
 export DB_PASSWORD=your_db_password
+# Sa-Token JWT 签名密钥
 export JWT_SECRET=your_strong_random_base64_secret
+# Redis
+export REDIS_HOST=localhost
+export REDIS_PORT=6379
+export REDIS_PASSWORD=your_redis_password
+# EdgeOne API Token AES 加密密钥
+export EDGEONE_ENCRYPT_KEY=your_strong_random_aes_key
+# 邮件（QQ 邮箱为例）
 export MAIL_HOST=smtp.qq.com
 export MAIL_USERNAME=your_email@qq.com
 export MAIL_PASSWORD=your_smtp_auth_code
