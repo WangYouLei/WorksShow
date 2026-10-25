@@ -41,7 +41,7 @@ public class UserEdgeoneConfig {
     /** 更新时间(数据库自动维护) */
     private LocalDateTime updateTime;
 
-    /** 逻辑删除标志:0-未删除 1-已删除(Mybatis-Plus 自动处理) */
-    @TableLogic
-    private Integer deleted;
+    /** 逻辑删除:0-未删除 非0-已删除(删除时置为本行主键ID,避免与唯一索引冲突,Mybatis-Plus 自动处理) */
+    @TableLogic(value = "0", delval = "id")
+    private Long deleted;
 }

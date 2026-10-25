@@ -24,6 +24,10 @@ import { gazetteMeta } from './gazette/meta'
 import { getGazetteDefaultData } from './gazette/defaultData'
 import { exportGazetteHtml } from './gazette/exportTemplate'
 import GazettePreview from './gazette/GazettePreview.vue'
+import { glass3DMeta } from './glass-3d/meta'
+import { getGlass3DDefaultData } from './glass-3d/defaultData'
+import { exportGlass3DHtml } from './glass-3d/exportTemplate'
+import Glass3DPreview from './glass-3d/Glass3DPreview.vue'
 
 /** 模板完整注册项（含默认数据获取器、预览组件、导出函数） */
 interface TemplateEntry extends TemplateMeta {
@@ -68,6 +72,12 @@ const registry: Record<string, TemplateEntry> = {
     getDefaultData: getGazetteDefaultData,
     PreviewComponent: GazettePreview,
     exportHtml: exportGazetteHtml,
+  },
+  'glass-3d': {
+    ...glass3DMeta,
+    getDefaultData: getGlass3DDefaultData,
+    PreviewComponent: Glass3DPreview,
+    exportHtml: exportGlass3DHtml,
   },
 }
 

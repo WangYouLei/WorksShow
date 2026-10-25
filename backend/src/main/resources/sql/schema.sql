@@ -22,10 +22,13 @@ USE `works_show`;
 -- - 登录账号为手机号(phone)或邮箱(email),不再使用 username
 -- - nickname 作为展示名,注册时由用户填写
 -- - password 字段存储 BCrypt 加密后的密文,非明文
--- - deleted 字段配合 Mybatis-plus 逻辑删除
+-- - deleted 字段配合 Mybatis-plus 逻辑删除:0-未删除,非0-已删除
+--   (删除时置为本行主键ID,见实体 @TableLogic(delval="id"))
 -- - create_time / update_time 由数据库自动维护
 -- - 唯一索引包含 deleted 字段: 解决"逻辑删除后邮箱/手机号无法
---   重新注册"问题。
+--   重新注册"问题。deleted 删除时置为主键ID 而非固定 1,同一账号
+--   可反复"删除-重注册"而不会撞唯一索引(固定 1 时第二次删除
+--   会与历史已删除行冲突)。
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `user` (
     `id`          BIGINT       NOT NULL AUTO_INCREMENT              COMMENT '主键ID',
@@ -38,9 +41,10 @@ CREATE TABLE IF NOT EXISTS `user` (
     `status`      TINYINT               DEFAULT 1                  COMMENT '账号状态:0-禁用 1-启用',
     `create_time` DATETIME              DEFAULT CURRENT_TIMESTAMP  COMMENT '创建时间',
     `update_time` DATETIME              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `deleted`     TINYINT               DEFAULT 0                  COMMENT '逻辑删除:0-未删除 1-已删除',
+    `deleted`     BIGINT       NOT NULL DEFAULT 0                  COMMENT '逻辑删除:0-未删除 非0-已删除(删除时置为主键ID,避免唯一索引冲突)',
     PRIMARY KEY (`id`),
     -- 复合唯一索引: 包含 deleted,使逻辑删除后邮箱/手机号可重新注册
+    -- (deleted 删除时置为主键ID,天然唯一,支持同一账号多次删除重注册)
     UNIQUE KEY `uk_email` (`email`, `deleted`),
     UNIQUE KEY `uk_phone` (`phone`, `deleted`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '用户表';
@@ -102,9 +106,10 @@ CREATE TABLE IF NOT EXISTS `user_profile` (
     `p_socials`       JSON                  DEFAULT NULL               COMMENT '社交链接数组 [{name,url,icon}]',
     `create_time`     DATETIME              DEFAULT CURRENT_TIMESTAMP  COMMENT '创建时间',
     `update_time`     DATETIME              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `deleted`         TINYINT               DEFAULT 0                  COMMENT '逻辑删除:0-未删除 1-已删除',
+    `deleted`         BIGINT       NOT NULL DEFAULT 0                  COMMENT '逻辑删除:0-未删除 非0-已删除(删除时置为主键ID,避免唯一索引冲突)',
     PRIMARY KEY (`id`),
-    -- 一个用户一份档案(含 deleted 解决逻辑删除后重建)
+    -- 一个用户一份档案(含 deleted 解决逻辑删除后重建;
+    -- 删除时 deleted 置为主键ID,可反复删除重建不撞唯一索引)
     UNIQUE KEY `uk_user` (`user_id`, `deleted`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '用户简历档案表(所有模板共享的个人信息)';
 
@@ -216,9 +221,10 @@ CREATE TABLE IF NOT EXISTS `career_intention` (
     `self_evaluation`   TEXT                  DEFAULT NULL               COMMENT '自我评价/求职宣言(可选)',
     `create_time`       DATETIME              DEFAULT CURRENT_TIMESTAMP  COMMENT '创建时间',
     `update_time`       DATETIME              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `deleted`           TINYINT               DEFAULT 0                  COMMENT '逻辑删除:0-未删除 1-已删除',
+    `deleted`           BIGINT       NOT NULL DEFAULT 0                  COMMENT '逻辑删除:0-未删除 非0-已删除(删除时置为主键ID,避免唯一索引冲突)',
     PRIMARY KEY (`id`),
-    -- 一个用户一份求职意向(含 deleted 解决逻辑删除后重建)
+    -- 一个用户一份求职意向(含 deleted 解决逻辑删除后重建;
+    -- 删除时 deleted 置为主键ID,可反复删除重建不撞唯一索引)
     UNIQUE KEY `uk_user` (`user_id`, `deleted`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '求职意向表(一个用户一份)';
 
@@ -321,8 +327,9 @@ CREATE TABLE IF NOT EXISTS `user_edgeone_config` (
     `project_name`  VARCHAR(100)          DEFAULT NULL               COMMENT 'EdgeOne Pages 项目名(CLI -n参数用,部署时默认项目名,明文存储)',
     `create_time`   DATETIME              DEFAULT CURRENT_TIMESTAMP  COMMENT '创建时间',
     `update_time`   DATETIME              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `deleted`       TINYINT               DEFAULT 0                  COMMENT '逻辑删除:0-未删除 1-已删除',
+    `deleted`       BIGINT       NOT NULL DEFAULT 0                  COMMENT '逻辑删除:0-未删除 非0-已删除(删除时置为主键ID,避免唯一索引冲突)',
     PRIMARY KEY (`id`),
+    -- 一个用户一份配置(删除时 deleted 置为主键ID,可反复删除重建不撞唯一索引)
     UNIQUE KEY `uk_user` (`user_id`, `deleted`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '用户EdgeOne配置表(API Token AES加密存储)';
 
@@ -380,3 +387,38 @@ CREATE TABLE IF NOT EXISTS `deployment` (
     KEY `idx_portfolio_id` (`portfolio_id`),
     KEY `idx_custom_domain_id` (`custom_domain_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '模板部署记录表(部署到EdgeOne Pages)';
+
+
+-- ============================================================
+-- 数据库迁移: deleted 字段升级为"主键ID"语义(仅旧库执行,一次性迁移)
+-- ------------------------------------------------------------
+-- 说明:
+--   修复逻辑删除与唯一索引的冲突:原 deleted 为 TINYINT 0/1,
+--   唯一索引 (email, deleted) / (user_id, deleted) 下,同一邮箱
+--   或同一用户的记录第二次逻辑删除时,UPDATE ... SET deleted=1
+--   会与历史已删除行(deleted=1)撞唯一索引导致删除失败。
+--   新语义: 0-未删除;删除时置为本行主键ID(主键天然唯一),
+--   由实体 @TableLogic(value="0", delval="id") 自动生成
+--   UPDATE ... SET deleted=id WHERE ... AND deleted=0。
+--   仅涉及带 deleted 唯一索引的 4 张表;其余表的 deleted 与
+--   唯一索引无关,维持 TINYINT 0/1 不变。
+--   - 全新库: 上方 CREATE TABLE 已是新结构,此块保持注释,跳过
+--   - 旧库: 执行前请备份,取消下方 /* */ 注释后按序执行
+-- ============================================================
+
+/* 旧库迁移语句(全新库默认整块注释,旧库取消此块注释后执行)
+
+-- 1) 字段类型升级: TINYINT -> BIGINT(0-未删除,非0-已删除,存主键ID)
+ALTER TABLE `user`               MODIFY COLUMN `deleted` BIGINT NOT NULL DEFAULT 0 COMMENT '逻辑删除:0-未删除 非0-已删除(删除时置为主键ID,避免唯一索引冲突)';
+ALTER TABLE `user_profile`       MODIFY COLUMN `deleted` BIGINT NOT NULL DEFAULT 0 COMMENT '逻辑删除:0-未删除 非0-已删除(删除时置为主键ID,避免唯一索引冲突)';
+ALTER TABLE `career_intention`   MODIFY COLUMN `deleted` BIGINT NOT NULL DEFAULT 0 COMMENT '逻辑删除:0-未删除 非0-已删除(删除时置为主键ID,避免唯一索引冲突)';
+ALTER TABLE `user_edgeone_config` MODIFY COLUMN `deleted` BIGINT NOT NULL DEFAULT 0 COMMENT '逻辑删除:0-未删除 非0-已删除(删除时置为主键ID,避免唯一索引冲突)';
+
+-- 2) 存量已删除数据回填: deleted=1 -> deleted=本行主键ID
+--    (避免历史行占用 (值,1) 导致后续删除撞唯一索引)
+UPDATE `user`                SET `deleted` = `id` WHERE `deleted` <> 0;
+UPDATE `user_profile`        SET `deleted` = `id` WHERE `deleted` <> 0;
+UPDATE `career_intention`    SET `deleted` = `id` WHERE `deleted` <> 0;
+UPDATE `user_edgeone_config` SET `deleted` = `id` WHERE `deleted` <> 0;
+
+*/ -- 迁移块结束
