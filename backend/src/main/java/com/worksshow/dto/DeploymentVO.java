@@ -26,6 +26,9 @@ public class DeploymentVO {
     /** EdgeOne 项目名 */
     private String projectName;
 
+    /** 部署方式:edgeone-EdgeOne Pages local-本服务器 */
+    private String deployType;
+
     /** 部署描述 */
     private String description;
 

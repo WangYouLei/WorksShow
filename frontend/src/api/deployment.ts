@@ -7,10 +7,14 @@ export const DEPLOY_STATUS = {
   FAILED: 2,
 } as const
 
+/** 部署方式:edgeone-EdgeOne Pages local-本服务器 */
+export type DeployType = 'edgeone' | 'local'
+
 /** 部署请求(前端渲染好的 HTML + 简历ID + 项目名) */
 export interface DeploymentRequest {
   portfolioId: number
   html: string
+  deployType?: DeployType
   projectName?: string
   description?: string
 }
@@ -21,6 +25,7 @@ export interface DeploymentVO {
   portfolioId: number
   templateId: string
   projectName: string
+  deployType: DeployType | null
   description: string | null
   status: number
   deployUrl: string | null
@@ -30,9 +35,9 @@ export interface DeploymentVO {
 }
 
 /**
- * 部署简历模板到 EdgeOne Pages
+ * 部署简历模板(EdgeOne Pages 或 本服务器)
  * <p>
- * 同步部署:后端调用 EdgeOne CLI 完成,可能耗时数十秒,
+ * 同步部署:EdgeOne 方式后端调用 CLI 完成,可能耗时数十秒,
  * 此请求单独设置 200s 超时(全局默认 15s 不够)。
  */
 export function deploy(data: DeploymentRequest) {

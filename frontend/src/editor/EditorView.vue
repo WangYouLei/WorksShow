@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ChevronsLeft, ChevronsRight } from 'lucide-vue-next'
 import { getTemplateMeta } from '@/templates/registry'
 import { usePortfolioStore, resetPortfolioStore, getSaveStatus, saveNow, setProfileLocked } from '@/composables/usePortfolioStore'
 import { downloadPortfolioHtml } from '@/composables/useExporter'
@@ -41,6 +42,9 @@ const tabs = [
   { id: 'career', label: '求职意向' },
 ] as const
 const activeTab = ref<typeof tabs[number]['id']>('profile')
+
+// 左侧编辑面板收起 / 展开
+const formCollapsed = ref(false)
 
 const onReset = () => {
   if (confirm('确定重置为模板默认数据？这将覆盖你的所有简历内容（所有模板共享同一份档案）。')) {
@@ -93,7 +97,7 @@ onUnmounted(() => setProfileLocked(false))
       </div>
     </header>
 
-    <div class="editor-body">
+    <div class="editor-body" :class="{ 'is-form-collapsed': formCollapsed }">
       <aside class="editor-form">
         <div class="ef-tabs">
           <button
@@ -115,6 +119,17 @@ onUnmounted(() => setProfileLocked(false))
           <CareerIntentionPanel v-else :no-save="true" />
         </div>
       </aside>
+      <!-- 左侧面板收起 / 展开按钮（位于面板与预览区分界线上） -->
+      <button
+        class="form-toggle"
+        type="button"
+        :aria-expanded="!formCollapsed"
+        :aria-label="formCollapsed ? '展开编辑面板' : '收起编辑面板'"
+        @click="formCollapsed = !formCollapsed"
+      >
+        <ChevronsLeft v-if="!formCollapsed" :size="16" :stroke-width="2" />
+        <ChevronsRight v-else :size="16" :stroke-width="2" />
+      </button>
       <section class="editor-preview">
         <PreviewFrame :data="store" :template-id="props.templateId" />
       </section>
@@ -276,15 +291,49 @@ onUnmounted(() => setProfileLocked(false))
 .editor-body {
   flex: 1;
   display: grid;
-  grid-template-columns: 380px 1fr;
+  grid-template-columns: auto 1fr;
   overflow: hidden;
+  position: relative;
 }
 .editor-form {
+  width: 380px;
   display: flex;
   flex-direction: column;
   border-right: 1px solid rgba(212, 165, 116, 0.15);
   background: rgba(255, 255, 255, 0.02);
   overflow: hidden;
+  transition: width 0.28s ease, border-color 0.28s ease;
+}
+.editor-body.is-form-collapsed .editor-form {
+  width: 0;
+  border-right-color: transparent;
+}
+/* 面板收起 / 展开按钮：贴在分界线上，随面板宽度平滑移动 */
+.form-toggle {
+  position: absolute;
+  top: 50%;
+  left: 380px;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 40px;
+  color: rgba(245, 241, 232, 0.65);
+  background: rgba(20, 20, 28, 0.9);
+  border: 1px solid rgba(212, 165, 116, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: left 0.28s ease, transform 0.28s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.editor-body.is-form-collapsed .form-toggle {
+  left: 0;
+  /* 收起后按钮完整落在视口内，不被 overflow 裁切 */
+  transform: translate(0, -50%);
+}
+.form-toggle:hover {
+  color: #d4a574;
+  border-color: #d4a574;
 }
 .editor-form-content {
   flex: 1;

@@ -28,6 +28,14 @@ import { glass3DMeta } from './glass-3d/meta'
 import { getGlass3DDefaultData } from './glass-3d/defaultData'
 import { exportGlass3DHtml } from './glass-3d/exportTemplate'
 import Glass3DPreview from './glass-3d/Glass3DPreview.vue'
+import { cubeDossierMeta } from './cube-dossier/meta'
+import { getCubeDossierDefaultData } from './cube-dossier/defaultData'
+import { exportCubeDossierHtml } from './cube-dossier/exportTemplate'
+import CubeDossierPreview from './cube-dossier/CubeDossierPreview.vue'
+import { particlePlanetMeta } from './particle-planet/meta'
+import { getParticlePlanetDefaultData } from './particle-planet/defaultData'
+import { exportParticlePlanetHtml } from './particle-planet/exportTemplate'
+import ParticlePlanetPreview from './particle-planet/ParticlePlanetPreview.vue'
 
 /** 模板完整注册项（含默认数据获取器、预览组件、导出函数） */
 interface TemplateEntry extends TemplateMeta {
@@ -78,6 +86,18 @@ const registry: Record<string, TemplateEntry> = {
     getDefaultData: getGlass3DDefaultData,
     PreviewComponent: Glass3DPreview,
     exportHtml: exportGlass3DHtml,
+  },
+  'cube-dossier': {
+    ...cubeDossierMeta,
+    getDefaultData: getCubeDossierDefaultData,
+    PreviewComponent: CubeDossierPreview,
+    exportHtml: exportCubeDossierHtml,
+  },
+  'particle-planet': {
+    ...particlePlanetMeta,
+    getDefaultData: getParticlePlanetDefaultData,
+    PreviewComponent: ParticlePlanetPreview,
+    exportHtml: exportParticlePlanetHtml,
   },
 }
 

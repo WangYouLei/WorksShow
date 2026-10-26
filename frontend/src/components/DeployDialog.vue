@@ -7,6 +7,7 @@ import {
   deploy,
   DEPLOY_STATUS,
   type DeploymentVO,
+  type DeployType,
 } from '@/api/deployment'
 import { getEdgeOneConfig, type EdgeOneConfigVO } from '@/api/edgeoneConfig'
 
@@ -26,6 +27,7 @@ const config = ref<EdgeOneConfigVO | null>(null)
 const result = ref<DeploymentVO | null>(null)
 const error = ref('')
 const copied = ref(false)
+const deployType = ref<DeployType>('edgeone')
 const form = reactive({
   projectName: '',
   description: '',
@@ -36,6 +38,13 @@ const showForm = computed(() => !loading.value && !deploying.value && !result.va
 const showDeploying = computed(() => deploying.value)
 const showSuccess = computed(() => !!result.value && result.value.status === DEPLOY_STATUS.SUCCESS && !error.value)
 const showError = computed(() => !!error.value && !deploying.value)
+
+// 部署中提示文案(本服务器部署为落盘操作,几乎瞬时完成)
+const deployingText = computed(() =>
+  deployType.value === 'local'
+    ? '正在部署到本服务器…'
+    : '正在部署,请耐心等待(通常 10-60 秒)…',
+)
 
 const close = () => {
   emit('update:modelValue', false)
@@ -63,8 +72,8 @@ const onDeploy = async () => {
   error.value = ''
   result.value = null
 
-  // 1. 确认 EdgeOne 已配置
-  if (!config.value) {
+  // 1. EdgeOne 方式需确认已配置 API Token(本服务器部署无需任何配置)
+  if (deployType.value === 'edgeone' && !config.value) {
     error.value = '请先配置 EdgeOne API Token'
     return
   }
@@ -86,10 +95,11 @@ const onDeploy = async () => {
   deploying.value = true
   try {
     const html = await exporter(usePortfolioStore(props.templateId))
-    // 4. 调用部署 API(同步,后端 CLI 执行)
+    // 4. 调用部署 API(同步,后端执行 EdgeOne CLI / 本地落盘)
     const res = await deploy({
       portfolioId,
       html,
+      deployType: deployType.value,
       projectName: form.projectName.trim() || undefined,
       description: form.description.trim() || undefined,
     })
@@ -129,6 +139,7 @@ watch(
       result.value = null
       error.value = ''
       copied.value = false
+      deployType.value = 'edgeone'
       form.description = ''
       loadConfig()
     }
@@ -142,7 +153,7 @@ watch(
       <div class="deploy-dialog">
         <!-- 头部 -->
         <div class="dialog-header">
-          <h2 class="dialog-title">部署到 EdgeOne Pages</h2>
+          <h2 class="dialog-title">部署简历</h2>
           <button class="close-btn" type="button" @click="close">×</button>
         </div>
 
@@ -155,7 +166,7 @@ watch(
           <!-- 部署中 -->
           <div v-else-if="showDeploying" class="state-block">
             <div class="spinner" aria-hidden="true"></div>
-            <p class="state-text">正在部署,请耐心等待(通常 10-60 秒)…</p>
+            <p class="state-text">{{ deployingText }}</p>
           </div>
 
           <!-- 部署成功 -->
@@ -190,25 +201,46 @@ watch(
             </div>
           </div>
 
-          <!-- 未配置 EdgeOne -->
-          <div v-else-if="!config" class="state-block">
+          <!-- 未配置 EdgeOne(仅 EdgeOne 方式需要) -->
+          <div v-else-if="deployType === 'edgeone' && !config" class="state-block">
             <p class="state-text">尚未配置 EdgeOne API Token</p>
-            <p class="state-hint">部署前需要先配置 EdgeOne 凭证,请前往「账号管理 → 部署配置」。</p>
+            <p class="state-hint">EdgeOne 部署前需要先配置凭证,请前往「账号管理 → 部署配置」;<br />或选择「本服务器」方式,无需任何配置。</p>
             <button type="button" class="btn-primary" @click="goConfig">前往配置</button>
           </div>
 
           <!-- 部署表单 -->
           <form v-else class="deploy-form" @submit.prevent="onDeploy">
-            <div class="config-info">
-              当前 Token: <span class="token-masked">{{ config.apiTokenMasked }}</span>
+            <!-- 部署方式选择 -->
+            <div class="deploy-type-group">
+              <label class="type-option" :class="{ active: deployType === 'edgeone' }">
+                <input v-model="deployType" type="radio" name="deployType" value="edgeone" />
+                <span class="type-radio" aria-hidden="true"></span>
+                <span class="type-body">
+                  <span class="type-title">EdgeOne Pages</span>
+                  <span class="type-desc">部署到 EdgeOne CDN,需已配置 API Token</span>
+                </span>
+              </label>
+              <label class="type-option" :class="{ active: deployType === 'local' }">
+                <input v-model="deployType" type="radio" name="deployType" value="local" />
+                <span class="type-radio" aria-hidden="true"></span>
+                <span class="type-body">
+                  <span class="type-title">本服务器</span>
+                  <span class="type-desc">部署到项目服务器,即传即生效,无需配置</span>
+                </span>
+              </label>
+            </div>
+            <div v-if="deployType === 'edgeone'" class="config-info">
+              当前 Token: <span class="token-masked">{{ config?.apiTokenMasked }}</span>
             </div>
             <label class="field">
-              <span class="field-label">项目名(留空则用默认)</span>
+              <span class="field-label">{{
+                deployType === 'local' ? '站点备注名(留空用简历名)' : '项目名(留空则用默认)'
+              }}</span>
               <input
                 v-model="form.projectName"
                 type="text"
                 class="field-input"
-                placeholder="EdgeOne Pages 项目名"
+                :placeholder="deployType === 'local' ? '如:我的求职简历' : 'EdgeOne Pages 项目名'"
               />
             </label>
             <label class="field">
@@ -374,6 +406,62 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+.deploy-type-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.type-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  border: 1px solid rgba(245, 241, 232, 0.15);
+  border-radius: 8px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.type-option input[type='radio'] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.type-option:hover {
+  border-color: rgba(212, 165, 116, 0.5);
+}
+.type-option.active {
+  border-color: #d4a574;
+  background: rgba(212, 165, 116, 0.08);
+}
+.type-radio {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  border: 2px solid rgba(245, 241, 232, 0.35);
+  border-radius: 50%;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.type-option.active .type-radio {
+  border-color: #d4a574;
+  box-shadow: inset 0 0 0 3.5px #15151f;
+  background: #d4a574;
+}
+.type-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.type-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f5f1e8;
+}
+.type-desc {
+  font-size: 12px;
+  color: rgba(245, 241, 232, 0.5);
+  line-height: 1.5;
 }
 .config-info {
   padding: 10px 12px;

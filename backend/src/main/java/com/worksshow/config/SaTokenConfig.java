@@ -83,12 +83,14 @@ public class SaTokenConfig implements WebMvcConfigurer {
                 }))
                 .addPathPatterns("/**")
                 // 放行: 发送验证码、注册、登录、忘记密码、刷新 token(公开接口)
+                // 放行: 本地部署站点页面(简历分享链接,必须匿名可访问)
                 .excludePathPatterns(
                         "/user/sendCode",
                         "/user/register",
                         "/user/login",
                         "/user/refresh-token",
                         "/user/forgot-password/**",
+                        "/sites/**",
                         "/error",
                         "/favicon.ico");
     }

@@ -358,8 +358,10 @@ CREATE TABLE IF NOT EXISTS `custom_domain` (
 -- ------------------------------------------------------------
 -- 3. 模板部署记录表 deployment
 -- ------------------------------------------------------------
--- 说明: 用户将简历实例(portfolio)部署到EdgeOne Pages的记录。
+-- 说明: 用户将简历实例(portfolio)部署到EdgeOne Pages或本服务器的记录。
 --       每次部署生成一条记录,关联一个简历实例。
+--       - deploy_type: 部署方式 edgeone/local(本服务器)
+--       - local_key: 本地部署站点key,同一简历重复部署复用(链接不变)
 --       - custom_domain_id: 可选,关联已保存的自定义域名
 --         NULL 表示使用 EdgeOne 默认分配的域名
 --       - path: 域名下子路径字段(保留),当前未使用
@@ -373,6 +375,8 @@ CREATE TABLE IF NOT EXISTS `deployment` (
     `portfolio_id`      BIGINT       NOT NULL                            COMMENT '关联简历实例ID(关联 portfolio.id)',
     `template_id`       VARCHAR(50)  NOT NULL                            COMMENT '模板ID(aurora/mo-yun/pastel,冗余便于查询)',
     `project_name`      VARCHAR(100) NOT NULL                            COMMENT '部署项目名称(用户自定义,展示用)',
+    `deploy_type`       VARCHAR(20)           DEFAULT 'edgeone'          COMMENT '部署方式:edgeone-EdgeOne Pages local-本服务器(HTML落盘由本服务提供访问)',
+    `local_key`         VARCHAR(64)           DEFAULT NULL               COMMENT '本地部署站点key(公开访问路径 /api/sites/{key},EdgeOne部署为NULL;同一简历重复部署复用,链接不变)',
     `description`       VARCHAR(500)          DEFAULT NULL               COMMENT '部署描述(用户可选填写)',
     `custom_domain_id`  BIGINT                DEFAULT NULL               COMMENT '关联自定义域名ID(关联 custom_domain.id,NULL表示用EdgeOne默认域名)',
     `path`              VARCHAR(200)          DEFAULT NULL               COMMENT '域名下子路径(保留字段,当前未使用:EdgeOne CLI不支持路径式多页面部署)',
@@ -386,7 +390,7 @@ CREATE TABLE IF NOT EXISTS `deployment` (
     KEY `idx_user_id` (`user_id`),
     KEY `idx_portfolio_id` (`portfolio_id`),
     KEY `idx_custom_domain_id` (`custom_domain_id`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '模板部署记录表(部署到EdgeOne Pages)';
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '模板部署记录表(部署到EdgeOne Pages或本服务器)';
 
 
 -- ============================================================
@@ -420,5 +424,24 @@ UPDATE `user`                SET `deleted` = `id` WHERE `deleted` <> 0;
 UPDATE `user_profile`        SET `deleted` = `id` WHERE `deleted` <> 0;
 UPDATE `career_intention`    SET `deleted` = `id` WHERE `deleted` <> 0;
 UPDATE `user_edgeone_config` SET `deleted` = `id` WHERE `deleted` <> 0;
+
+*/ -- 迁移块结束
+
+-- ============================================================
+-- 数据库迁移: deployment 表新增部署方式字段(仅旧库执行,一次性迁移)
+-- ------------------------------------------------------------
+-- 说明:
+--   支持"本服务器部署"方式:HTML 落盘由本服务通过 /api/sites/{key} 公开访问。
+--   - deploy_type: 部署方式 edgeone(默认,存量记录即此方式)/ local
+--   - local_key:   本地部署站点key(EdgeOne 部署为 NULL)
+--   全新库: 上方 CREATE TABLE 已含新列,此块保持注释,跳过
+--   旧库:   取消下方 /* */ 注释后执行(列已存在会报错,按需跳过)
+-- ============================================================
+
+/* 旧库迁移语句(全新库默认整块注释,旧库取消此块注释后执行)
+
+ALTER TABLE `deployment`
+    ADD COLUMN `deploy_type` VARCHAR(20) DEFAULT 'edgeone' COMMENT '部署方式:edgeone-EdgeOne Pages local-本服务器(HTML落盘由本服务提供访问)' AFTER `project_name`,
+    ADD COLUMN `local_key`   VARCHAR(64) DEFAULT NULL COMMENT '本地部署站点key(公开访问路径 /api/sites/{key},EdgeOne部署为NULL;同一简历重复部署复用,链接不变)' AFTER `deploy_type`;
 
 */ -- 迁移块结束

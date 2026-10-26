@@ -28,6 +28,11 @@ public class Deployment {
     /** 部署状态:2-失败 */
     public static final int STATUS_FAILED = 2;
 
+    /** 部署方式:EdgeOne Pages(调用用户凭证 + CLI) */
+    public static final String DEPLOY_TYPE_EDGEONE = "edgeone";
+    /** 部署方式:本服务器(HTML 落盘,由本服务公开提供访问) */
+    public static final String DEPLOY_TYPE_LOCAL = "local";
+
     /** 主键ID(数据库自增) */
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -43,6 +48,12 @@ public class Deployment {
 
     /** 部署项目名称(用户自定义,展示用) */
     private String projectName;
+
+    /** 部署方式:edgeone-EdgeOne Pages local-本服务器 */
+    private String deployType;
+
+    /** 本地部署站点key(公开访问URL用,如 /api/sites/{key},EdgeOne部署为NULL) */
+    private String localKey;
 
     /** 部署描述(用户可选填写) */
     private String description;
