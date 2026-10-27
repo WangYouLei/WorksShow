@@ -4,7 +4,6 @@ import type { Profile, Work, Experience, Skill } from '@/data/types'
 /** 简历列表项(主表,不含内容) */
 export interface PortfolioListItem {
   id: number
-  userId: number
   templateId: string
   name: string
   updateTime: string

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { safeUrl } from '@/utils/safeUrl'
 import { X, ArrowUpRight, Mail, MapPin, Clock, Github } from 'lucide-vue-next'
 import type { PortfolioData } from '../types'
 import { CUBE_ENGINE } from './engine'
@@ -242,7 +243,7 @@ onBeforeUnmount(() => {
           <a
             v-for="s in data.profile.socials"
             :key="s.name"
-            :href="s.url"
+            :href="safeUrl(s.url)"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -269,9 +270,9 @@ onBeforeUnmount(() => {
           <p class="cd-modal-desc">{{ w.description }}</p>
           <div class="cd-modal-tags"><i v-for="t in w.tags" :key="t">{{ t }}</i></div>
           <a
-            v-if="w.link"
+            v-if="safeUrl(w.link)"
             class="cd-mailto cd-modal-link"
-            :href="w.link"
+            :href="safeUrl(w.link)"
             target="_blank"
             rel="noopener noreferrer"
           >

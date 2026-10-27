@@ -85,25 +85,31 @@ public class PortfolioServiceImpl extends ServiceImpl<PortfolioMapper, Portfolio
     @Override
     public Portfolio create(PortfolioRequestDTO dto) {
         Long userId = UserContext.getCurrentUserId();
-        Portfolio existing = getOne(new LambdaQueryWrapper<Portfolio>()
-                .eq(Portfolio::getUserId, userId)
-                .eq(Portfolio::getTemplateId, dto.getTemplateId()));
-        if (existing != null) {
-            log.info("模板实例已存在,返回已有实例: id={}, userId={}, templateId={}",
-                    existing.getId(), userId, dto.getTemplateId());
-            if (dto.getName() != null && !dto.getName().equals(existing.getName())) {
-                existing.setName(dto.getName());
-                updateById(existing);
+        // 同一用户串行创建:应用层"先查后插"无法跨并发请求去重,
+        // 双击创建会产生重复实例,故按用户加锁串行化(单实例部署足够)
+        synchronized (("portfolio:create:" + userId).intern()) {
+            // LIMIT 1:容错历史上已产生的重复记录,避免 getOne 抛 TooManyResultsException
+            Portfolio existing = getOne(new LambdaQueryWrapper<Portfolio>()
+                    .eq(Portfolio::getUserId, userId)
+                    .eq(Portfolio::getTemplateId, dto.getTemplateId())
+                    .last("LIMIT 1"));
+            if (existing != null) {
+                log.info("模板实例已存在,返回已有实例: id={}, userId={}, templateId={}",
+                        existing.getId(), userId, dto.getTemplateId());
+                if (dto.getName() != null && !dto.getName().equals(existing.getName())) {
+                    existing.setName(dto.getName());
+                    updateById(existing);
+                }
+                return existing;
             }
-            return existing;
+            Portfolio portfolio = new Portfolio();
+            portfolio.setUserId(userId);
+            portfolio.setTemplateId(dto.getTemplateId());
+            portfolio.setName(dto.getName());
+            save(portfolio);
+            log.info("创建简历成功: id={}, userId={}", portfolio.getId(), userId);
+            return portfolio;
         }
-        Portfolio portfolio = new Portfolio();
-        portfolio.setUserId(userId);
-        portfolio.setTemplateId(dto.getTemplateId());
-        portfolio.setName(dto.getName());
-        save(portfolio);
-        log.info("创建简历成功: id={}, userId={}", portfolio.getId(), userId);
-        return portfolio;
     }
 
     /**

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { register, sendCode } from '@/api/auth'
 import type { RegisterData } from '@/api/auth'
@@ -18,6 +18,7 @@ const error = ref('')
 // 验证码发送倒计时
 const codeLoading = ref(false)
 const countdown = ref(0)
+let countdownTimer: ReturnType<typeof setInterval> | null = null
 
 const onSendCode = async () => {
   if (!form.email) {
@@ -28,12 +29,13 @@ const onSendCode = async () => {
   error.value = ''
   try {
     await sendCode({ email: form.email })
-    // 开始60秒倒计时
+    // 开始60秒倒计时(保存 timer 引用,组件卸载时清理,避免卸载后继续写 ref)
     countdown.value = 60
-    const timer = setInterval(() => {
+    countdownTimer = setInterval(() => {
       countdown.value--
-      if (countdown.value <= 0) {
-        clearInterval(timer)
+      if (countdown.value <= 0 && countdownTimer) {
+        clearInterval(countdownTimer)
+        countdownTimer = null
       }
     }, 1000)
   } catch (e) {
@@ -42,6 +44,14 @@ const onSendCode = async () => {
     codeLoading.value = false
   }
 }
+
+onUnmounted(() => {
+  // 组件卸载时清理倒计时,防止组件卸载后定时器继续写 ref
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+})
 
 const onSubmit = async () => {
   if (!form.nickname || !form.password || !form.email || !form.phone || !form.code) {

@@ -100,15 +100,17 @@ public class EmailCodeServiceImpl implements EmailCodeService {
         String redisKey = key(email);
 
         // 频率限制: 60秒内不可重复发送
-        Object sendTimeObj = redisTemplate.opsForHash().get(redisKey, FIELD_SEND_TIME);
-        if (sendTimeObj != null) {
-            long sendTime = Long.parseLong(sendTimeObj.toString());
-            long elapsed = System.currentTimeMillis() - sendTime;
-            if (elapsed < SEND_INTERVAL_MS) {
-                long remaining = (SEND_INTERVAL_MS - elapsed) / 1000;
-                log.warn("验证码发送过于频繁: email={}, 剩余{}秒", email, remaining);
-                throw new BusinessException(429, "验证码已发送,请" + remaining + "秒后重试");
-            }
+        // 使用 SETNX + EXPIRE 原子占锁:此前"先读 sendTime 再写入"存在并发窗口,
+        // 并发请求可同时通过检查导致重复发信(邮件轰炸)
+        String rateLimitKey = redisKey + ":rate";
+        Boolean acquired = redisTemplate.opsForValue()
+                .setIfAbsent(rateLimitKey, "1", Duration.ofMillis(SEND_INTERVAL_MS));
+        if (!Boolean.TRUE.equals(acquired)) {
+            Long ttlSeconds = redisTemplate.getExpire(rateLimitKey);
+            long remaining = (ttlSeconds == null || ttlSeconds < 0)
+                    ? SEND_INTERVAL_MS / 1000 : ttlSeconds;
+            log.warn("验证码发送过于频繁: email={}, 剩余{}秒", email, remaining);
+            throw new BusinessException(429, "验证码已发送,请" + remaining + "秒后重试");
         }
 
         // 生成6位数字验证码(使用 SecureRandom 防止预测)
@@ -135,8 +137,9 @@ public class EmailCodeServiceImpl implements EmailCodeService {
             mailSender.send(message);
             log.info("验证码发送成功: email={}", email);
         } catch (Exception e) {
-            // 发送失败,移除已存储的验证码,避免占用频率限制
+            // 发送失败,移除已存储的验证码并释放频率限制,允许用户立即重试
             redisTemplate.delete(redisKey);
+            redisTemplate.delete(rateLimitKey);
             log.error("验证码发送失败: email={}", email, e);
             throw new BusinessException(500, "验证码发送失败,请检查邮箱配置或稍后重试");
         }

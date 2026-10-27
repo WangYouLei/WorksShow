@@ -13,6 +13,7 @@ import com.worksshow.security.UserContext;
 import com.worksshow.service.UserEdgeoneConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 /**
@@ -84,9 +85,25 @@ public class UserEdgeoneConfigServiceImpl extends ServiceImpl<UserEdgeoneConfigM
         config.setUserId(userId);
         config.setApiToken(aesUtils.encrypt(dto.getApiToken()));
         config.setProjectName(dto.getProjectName());
-        save(config);
-        log.info("保存EdgeOne配置: userId={}", userId);
-        return config;
+        try {
+            save(config);
+            log.info("保存EdgeOne配置: userId={}", userId);
+            return config;
+        } catch (DuplicateKeyException e) {
+            // 并发首次配置命中 userId 唯一索引兜底:转为更新已插入的记录
+            UserEdgeoneConfig raced = getOne(new LambdaQueryWrapper<UserEdgeoneConfig>()
+                    .eq(UserEdgeoneConfig::getUserId, userId)
+                    .last("LIMIT 1"));
+            if (raced == null) {
+                // 理论不可达(唯一约束冲突说明记录存在),防御性重抛
+                throw e;
+            }
+            raced.setApiToken(config.getApiToken());
+            raced.setProjectName(dto.getProjectName());
+            updateById(raced);
+            log.info("并发首次配置,转为更新EdgeOne配置: userId={}", userId);
+            return raced;
+        }
     }
 
     /**

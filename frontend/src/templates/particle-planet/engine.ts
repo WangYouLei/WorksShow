@@ -33,16 +33,21 @@ export const PP_ENGINE = `(function (root) {
     szb[i] = 2.6 + ((i * 7919) % 1000) / 1000 * 2.6;
   }
 
+  // 粒子贴图：实心亮核 + 锐利截止 + 薄辉光。
+  // 核心区（半径 25% 内）保持完全不透明，保证每个粒子有清晰实体；
+  // 33% 处快速截止避免长渐变雾化，外侧仅保留一层淡辉光维持"发光感"。
   function makeSprite(rgb) {
     var s = document.createElement('canvas');
-    s.width = 32; s.height = 32;
+    s.width = 64; s.height = 64;
     var c = s.getContext('2d');
-    var g = c.createRadialGradient(16, 16, 0, 16, 16, 16);
-    g.addColorStop(0, 'rgba(255,255,255,0.95)');
-    g.addColorStop(0.25, 'rgba(' + rgb + ',0.85)');
+    var g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.25, 'rgba(' + rgb + ',1)');
+    g.addColorStop(0.33, 'rgba(' + rgb + ',0.30)');
+    g.addColorStop(0.62, 'rgba(' + rgb + ',0.07)');
     g.addColorStop(1, 'rgba(' + rgb + ',0)');
     c.fillStyle = g;
-    c.fillRect(0, 0, 32, 32);
+    c.fillRect(0, 0, 64, 64);
     return s;
   }
   var SPRITES = [makeSprite('56,189,248'), makeSprite('139,124,246'), makeSprite('236,95,168')];
@@ -86,7 +91,10 @@ export const PP_ENGINE = `(function (root) {
   }
   function fText(i2) {
     if (!textPts || !textPts.length) return fSphere(i2);
-    var p = textPts[i2 % textPts.length];
+    // 采样点按行从上往下 push，若点数超过粒子数 N，
+    // 用 i2 % length 只会取到列表前段（文字上半截），每个字只显示一半；
+    // 按索引比例均匀映射，让粒子铺满整段文字。
+    var p = textPts[(i2 * textPts.length / N) | 0];
     return [p[0] + jit(5), p[1] + jit(5), jit(30)];
   }
 
@@ -176,9 +184,10 @@ export const PP_ENGINE = `(function (root) {
   function frame(now) {
     if (!running) return;
     var dt = now - t0; t0 = now;
+    // 完全清屏（透明），透出 CSS 深空渐变背景；
+    // 不用半透明覆盖，避免上一帧残影形成拖尾模糊。
     ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = 'rgba(6, 8, 18, 0.38)';
-    ctx.fillRect(0, 0, W, H);
+    ctx.clearRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'lighter';
 
     if (!dragging) {
@@ -223,8 +232,10 @@ export const PP_ENGINE = `(function (root) {
       var syp = cy + Y * f * zoom;
       if (syp < -20 || syp > H + 20) continue;
       var s = szb[j] * f * zoom * DPR * 2;
-      var a = f - 0.72;
-      ctx.globalAlpha = a < 0 ? 0.2 : (a > 0.6 ? 1 : a * 1.4 + 0.2);
+      if (s < 2.6 * DPR) s = 2.6 * DPR;
+      // 深度透明：远处不低于 0.25（保持是清晰的暗点而非雾），近处全实
+      var a = (f - 0.5) * 1.25;
+      ctx.globalAlpha = a < 0.25 ? 0.25 : (a > 1 ? 1 : a);
       ctx.drawImage(SPRITES[spr[j]], sx - s / 2, syp - s / 2, s, s);
     }
     ctx.globalAlpha = 1;
@@ -279,37 +290,46 @@ export const PP_ENGINE = `(function (root) {
   canvas.addEventListener('pointerup', onUp);
   canvas.addEventListener('pointercancel', onUp);
 
-  var navs = root.querySelectorAll('[data-nav]');
-  for (i = 0; i < navs.length; i++) {
-    (function (btn, idx) {
-      btn.addEventListener('click', function () { setSection(idx); });
-    })(navs[i], i);
+  // ---- 事件委托:统一处理 root 上的 nav 点击 / 卡片点击 / modal 点击 ----
+  // 原因同 cube 引擎:navs/cards/modals 会被 Vue 重渲染替换,逐个绑 addEventListener
+  // 在 onMounted 时一次性执行后,新 DOM 节点没有监听器。
+  function onRootClick(ev) {
+    var target = ev.target;
+    if (!target) return;
+    // 1. 作品卡片 → 打开对应 modal
+    var card = target.closest('[data-work-id]');
+    if (card) {
+      ev.stopPropagation();
+      var id = card.getAttribute('data-work-id');
+      var modal = root.querySelector('[data-modal-id="' + id + '"]');
+      if (modal) {
+        modal.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+      }
+      return;
+    }
+    // 2. modal 的关闭按钮 / overlay
+    var modal = target.closest('.pp-modal');
+    if (modal) {
+      var close = target.closest('.modal-close');
+      var overlay = target.classList && target.classList.contains('modal-overlay') && target === modal.querySelector('.modal-overlay');
+      if (close || overlay) closeModal(modal);
+      return;
+    }
+    // 3. nav 按钮 → setSection(navIndex)
+    var navBtn = target.closest('[data-nav]');
+    if (navBtn) {
+      // 遍历当前所有 [data-nav],找到被点击按钮的索引(Vue 重渲染后 navs 节点已变,
+      // 委托时必须重新 querySelectorAll,不能用初始化时的 navs 变量)
+      var allNavs = root.querySelectorAll('[data-nav]');
+      for (var ni = 0; ni < allNavs.length; ni++) {
+        if (allNavs[ni] === navBtn) { setSection(ni); break; }
+      }
+    }
   }
+  root.addEventListener('click', onRootClick);
 
   function closeModal(m) { m.classList.remove('is-open'); document.body.style.overflow = ''; }
-  var cards = root.querySelectorAll('[data-work-id]');
-  for (i = 0; i < cards.length; i++) {
-    (function (card) {
-      card.addEventListener('click', function (ev) {
-        ev.stopPropagation();
-        var id = card.getAttribute('data-work-id');
-        var modal = root.querySelector('[data-modal-id="' + id + '"]');
-        if (modal) {
-          modal.classList.add('is-open');
-          document.body.style.overflow = 'hidden';
-        }
-      });
-    })(cards[i]);
-  }
-  var modals = root.querySelectorAll('.pp-modal');
-  for (i = 0; i < modals.length; i++) {
-    (function (modal) {
-      var close = modal.querySelector('.modal-close');
-      var overlay = modal.querySelector('.modal-overlay');
-      if (close) close.addEventListener('click', function () { closeModal(modal); });
-      if (overlay) overlay.addEventListener('click', function (ev) { if (ev.target === overlay) closeModal(modal); });
-    })(modals[i]);
-  }
 
   function onKey(e) {
     if (e.key === 'ArrowRight') next(1);
@@ -329,7 +349,7 @@ export const PP_ENGINE = `(function (root) {
   document.addEventListener('visibilitychange', onVis);
   window.addEventListener('resize', resize);
 
-  // 字体就绪后重绘姓名形态（避免首绘用了回退字体）
+  // 字体就绪后重绘姓名形态(避免首绘用了回退字体)
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(function () {
       if (sections[cur] === 'about') setSection(cur, true);
@@ -347,6 +367,7 @@ export const PP_ENGINE = `(function (root) {
     canvas.removeEventListener('pointermove', onMove);
     canvas.removeEventListener('pointerup', onUp);
     canvas.removeEventListener('pointercancel', onUp);
+    root.removeEventListener('click', onRootClick);
     document.removeEventListener('keydown', onKey);
     document.removeEventListener('visibilitychange', onVis);
     window.removeEventListener('resize', resize);

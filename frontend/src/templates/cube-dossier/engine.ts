@@ -137,44 +137,47 @@ export const CUBE_ENGINE = `(function (root) {
   stage.addEventListener('pointerup', onUp);
   stage.addEventListener('pointercancel', onUp);
 
-  var navBtns = root.querySelectorAll('[data-nav]');
-  for (var n = 0; n < navBtns.length; n++) {
-    (function (btn) {
-      btn.addEventListener('click', function () {
-        openPanel(btn.getAttribute('data-nav'));
-      });
-    })(navBtns[n]);
+  // ---- 事件委托:统一处理 root 上的 nav 点击 / 卡片点击 / close 点击 / modal 点击 ----
+  // 原因:[data-work-id]/[data-modal-id]/[data-nav] 等元素会被 Vue 重渲染替换,
+  // 逐个绑 addEventListener 在 onMounted 时一次性执行,之后新 DOM 节点没有监听器。
+  // 事件委托绑定在 root 模板静态元素上,重渲染后自动生效。
+  function onRootClick(ev) {
+    var target = ev.target;
+    if (!target) return;
+    // 1. 作品卡片 → 打开对应 modal
+    var card = target.closest('[data-work-id]');
+    if (card) {
+      ev.stopPropagation();
+      var id = card.getAttribute('data-work-id');
+      var modal = root.querySelector('[data-modal-id="' + id + '"]');
+      if (modal) {
+        modal.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+      }
+      return;
+    }
+    // 2. modal 的关闭按钮 / overlay
+    var modal = target.closest('.cd-modal');
+    if (modal) {
+      var close = target.closest('.modal-close');
+      var overlay = target.classList && target.classList.contains('modal-overlay') && target === modal.querySelector('.modal-overlay');
+      if (close || overlay) {
+        closeModal(modal);
+      }
+      return;
+    }
+    // 3. nav 按钮 → openPanel
+    var navBtn = target.closest('[data-nav]');
+    if (navBtn) {
+      openPanel(navBtn.getAttribute('data-nav'));
+      return;
+    }
+    // 4. close 按钮 → closePanel
+    if (target.closest('.cd-close')) {
+      closePanel();
+    }
   }
-
-  var closeBtns = root.querySelectorAll('.cd-close');
-  for (var c = 0; c < closeBtns.length; c++) {
-    closeBtns[c].addEventListener('click', closePanel);
-  }
-
-  var cards = root.querySelectorAll('[data-work-id]');
-  for (var w = 0; w < cards.length; w++) {
-    (function (card) {
-      card.addEventListener('click', function (ev) {
-        ev.stopPropagation();
-        var id = card.getAttribute('data-work-id');
-        var modal = root.querySelector('[data-modal-id="' + id + '"]');
-        if (modal) {
-          modal.classList.add('is-open');
-          document.body.style.overflow = 'hidden';
-        }
-      });
-    })(cards[w]);
-  }
-
-  var modals = root.querySelectorAll('.cd-modal');
-  for (var m = 0; m < modals.length; m++) {
-    (function (modal) {
-      var close = modal.querySelector('.modal-close');
-      var overlay = modal.querySelector('.modal-overlay');
-      if (close) close.addEventListener('click', function () { closeModal(modal); });
-      if (overlay) overlay.addEventListener('click', function (ev) { if (ev.target === overlay) closeModal(modal); });
-    })(modals[m]);
-  }
+  root.addEventListener('click', onRootClick);
 
   function onKey(e) {
     if (e.key !== 'Escape') return;
@@ -193,6 +196,7 @@ export const CUBE_ENGINE = `(function (root) {
     stage.removeEventListener('pointermove', onMove);
     stage.removeEventListener('pointerup', onUp);
     stage.removeEventListener('pointercancel', onUp);
+    root.removeEventListener('click', onRootClick);
     document.removeEventListener('keydown', onKey);
   };
 })`

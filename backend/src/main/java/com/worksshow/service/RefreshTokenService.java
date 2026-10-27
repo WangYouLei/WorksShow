@@ -34,4 +34,15 @@ public interface RefreshTokenService extends IService<RefreshToken> {
      * @param userId 用户ID
      */
     void deleteByUserId(Long userId);
+
+    /**
+     * 原子删除指定值的 refresh token(逻辑删除)
+     * <p>
+     * 用于刷新时的轮换:单条 UPDATE 天然原子,删除失败即说明该 token
+     * 已被并发请求使用(重放),调用方应拒绝刷新。
+     *
+     * @param refreshToken token 值
+     * @return true=删除成功;false=token 不存在或已被使用
+     */
+    boolean deleteByToken(String refreshToken);
 }

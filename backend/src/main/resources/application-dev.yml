@@ -1,0 +1,33 @@
+# ============================================================
+# 开发环境配置(本地默认激活,见 application.yml 的 spring.profiles.default)
+# ------------------------------------------------------------
+# 仅用于本地开发,提供数据库凭据与开发专用随机密钥。
+#
+# 生产环境部署要求:
+#   1. 设置 SPRING_PROFILES_ACTIVE=prod(或任何非 dev 值),本文件不生效;
+#   2. 通过环境变量注入:
+#      DB_USERNAME / DB_PASSWORD     - 数据库最小权限账号
+#      JWT_SECRET                    - 强随机 JWT 签名密钥
+#      EDGEONE_ENCRYPT_KEY           - 强随机 AES 加密密钥
+#   任一缺失时应用启动失败(fail-fast),绝不回退到本文件的开发密钥。
+# ============================================================
+spring:
+  datasource:
+    username: root
+    password: 123456
+
+sa-token:
+  jwt-secret-key: be2f981e5eb296a34c2b039cbf70443be2a119f4fd5d44874aea48aa8b9b6c60
+
+edgeone:
+  encrypt-key: c0d75983444ce411afaae3a338ad983671a1953da8639f85
+
+# 开发期开启 SQL 控制台输出 + DEBUG 日志,方便本地调试
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.worksshow: debug
+    org.springframework.web: info

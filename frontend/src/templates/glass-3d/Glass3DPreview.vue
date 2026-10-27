@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { safeUrl } from '@/utils/safeUrl'
 import {
   X,
   ArrowUpRight,
@@ -497,7 +498,7 @@ onBeforeUnmount(() => {
               v-for="s in data.profile.socials"
               :key="s.name"
               class="g3-social"
-              :href="s.url"
+              :href="safeUrl(s.url)"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -540,9 +541,9 @@ onBeforeUnmount(() => {
             <span v-for="t in w.tags" :key="t" class="g3-mini-chip">{{ t }}</span>
           </div>
           <a
-            v-if="w.link"
+            v-if="safeUrl(w.link)"
             class="g3-btn g3-btn-primary g3-modal-link"
-            :href="w.link"
+            :href="safeUrl(w.link)"
             target="_blank"
             rel="noopener noreferrer"
           >

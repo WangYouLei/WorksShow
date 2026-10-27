@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { safeUrl } from '@/utils/safeUrl'
 import {
   X,
   ArrowUpRight,
@@ -222,7 +223,7 @@ const year = computed(() => new Date().getFullYear())
               v-for="s in data.profile.socials"
               :key="s.name"
               class="social-link"
-              :href="s.url"
+              :href="safeUrl(s.url)"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -267,9 +268,9 @@ const year = computed(() => new Date().getFullYear())
             <span v-for="t in w.tags" :key="t" class="chip">{{ t }}</span>
           </div>
           <a
-            v-if="w.link"
+            v-if="safeUrl(w.link)"
             class="btn btn-primary modal-link"
-            :href="w.link"
+            :href="safeUrl(w.link)"
             target="_blank"
             rel="noopener noreferrer"
           >

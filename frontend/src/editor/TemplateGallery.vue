@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { templates } from '@/templates/registry'
+import { hasAuth } from '@/api/auth'
 
 const router = useRouter()
-const isLoggedIn = computed(() => !!localStorage.getItem('works-show:token'))
+// 登录态直接调用 hasAuth() (无 computed:hasAuth 内部读 localStorage 非响应式,
+// 但 TemplateGallery 在路由变化时重建,每次 setup 重新判断足够)
+const isLoggedIn = () => hasAuth()
 
 const useTemplate = (id: string) => {
   router.push({ name: 'editor', params: { templateId: id } })
@@ -15,7 +17,7 @@ const useTemplate = (id: string) => {
   <div class="gallery">
     <!-- 右上角固定按钮 -->
     <div class="top-right-actions">
-      <button v-if="isLoggedIn" class="account-link" @click="router.push('/account')">账号管理</button>
+      <button v-if="isLoggedIn()" class="account-link" @click="router.push('/account')">账号管理</button>
       <button v-else class="account-link" @click="router.push('/login')">登录 / 注册</button>
     </div>
 

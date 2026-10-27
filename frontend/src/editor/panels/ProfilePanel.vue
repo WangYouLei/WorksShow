@@ -5,12 +5,12 @@ const props = defineProps<{ templateId?: string }>()
 const store = usePortfolioStore(props.templateId)
 
 const addStat = () => {
-  store.profile.stats.push({ label: '新统计', value: '0' })
+  store.profile.stats.push({ id: 'stat-' + crypto.randomUUID(), label: '新统计', value: '0' })
 }
 const removeStat = (i: number) => store.profile.stats.splice(i, 1)
 
 const addSocial = () => {
-  store.profile.socials.push({ name: '新链接', url: 'https://', icon: 'mail' })
+  store.profile.socials.push({ id: 'social-' + crypto.randomUUID(), name: '新链接', url: 'https://', icon: 'mail' })
 }
 const removeSocial = (i: number) => store.profile.socials.splice(i, 1)
 </script>
@@ -36,7 +36,7 @@ const removeSocial = (i: number) => store.profile.socials.splice(i, 1)
         <h4>数据统计</h4>
         <button class="ef-add-btn" type="button" @click="addStat">+ 添加</button>
       </div>
-      <div v-for="(s, i) in store.profile.stats" :key="i" class="ef-row">
+      <div v-for="(s, i) in store.profile.stats" :key="s.id" class="ef-row">
         <input v-model="s.label" class="ef-input" type="text" placeholder="标签（如：项目交付）" />
         <input v-model="s.value" class="ef-input" type="text" placeholder="值（如：60+）" />
         <button class="ef-remove-btn" type="button" @click="removeStat(i)">删除</button>
@@ -49,7 +49,7 @@ const removeSocial = (i: number) => store.profile.socials.splice(i, 1)
         <h4>社交链接</h4>
         <button class="ef-add-btn" type="button" @click="addSocial">+ 添加</button>
       </div>
-      <div v-for="(s, i) in store.profile.socials" :key="i" class="ef-row">
+      <div v-for="(s, i) in store.profile.socials" :key="s.id" class="ef-row">
         <input v-model="s.name" class="ef-input" type="text" placeholder="名称" />
         <input v-model="s.url" class="ef-input" type="text" placeholder="链接" />
         <select v-model="s.icon" class="ef-select" style="width:auto">

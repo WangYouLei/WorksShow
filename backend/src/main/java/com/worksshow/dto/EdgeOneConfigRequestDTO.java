@@ -1,5 +1,6 @@
 package com.worksshow.dto;
 
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -21,7 +22,10 @@ public class EdgeOneConfigRequestDTO {
     @Size(max = 255, message = "API Token长度不能超过255")
     private String apiToken;
 
-    /** EdgeOne Pages 项目名(CLI -n参数用,可选,部署时的默认项目名) */
+    /** EdgeOne Pages 项目名(CLI -n参数用,可选,部署时的默认项目名)。
+     *  仅允许字母开头+字母/数字/下划线/连字符,防止以 - 开头被 CLI 解析为其他选项(参数注入) */
+    @Pattern(regexp = "^[a-zA-Z0-9][a-zA-Z0-9-_]{0,99}$",
+            message = "项目名须以字母或数字开头,仅可包含字母/数字/下划线/连字符")
     @Size(max = 100, message = "项目名长度不能超过100")
     private String projectName;
 }

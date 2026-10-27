@@ -2,6 +2,7 @@
 import { watch, onUnmounted } from 'vue'
 import { X, ArrowUpRight } from 'lucide-vue-next'
 import type { Work } from '@/data/types'
+import { safeUrl } from '@/utils/safeUrl'
 
 const props = defineProps<{ work: Work | null }>()
 const emit = defineEmits<{ close: [] }>()
@@ -54,8 +55,8 @@ onUnmounted(() => {
           </div>
 
           <a
-            v-if="work.link"
-            :href="work.link"
+            v-if="safeUrl(work.link)"
+            :href="safeUrl(work.link)"
             target="_blank"
             rel="noopener noreferrer"
             class="btn btn-primary modal-link"

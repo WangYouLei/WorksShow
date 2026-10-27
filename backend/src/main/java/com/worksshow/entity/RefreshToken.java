@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  * Refresh Token 实体 - 对应数据库 refresh_token 表
  * <p>
  * 用于 access token 过期后刷新获取新 token。
- * - refresh_token: UUID 随机字符串,唯一
+ * - refresh_token: token 的 SHA-256 哈希(64位hex),不存明文,唯一
  * - user_id: 关联用户
  * - expires_at: 过期时间(7天),用于判断是否有效
  * - 使用逻辑删除,便于审计和清理过期记录

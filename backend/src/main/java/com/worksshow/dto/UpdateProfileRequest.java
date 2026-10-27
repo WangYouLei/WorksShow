@@ -1,5 +1,7 @@
 package com.worksshow.dto;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -20,5 +22,7 @@ public class UpdateProfileRequest {
     private String nickname;
 
     /** 性别:0-未知 1-男 2-女 */
+    @Min(value = 0, message = "性别取值不合法")
+    @Max(value = 2, message = "性别取值不合法")
     private Integer gender;
 }

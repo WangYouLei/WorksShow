@@ -13,6 +13,7 @@ import type { UserInfo, UpdateProfileData, ChangePasswordData, ResetPasswordData
 import EdgeOneConfigPanel from '@/components/EdgeOneConfigPanel.vue'
 import CareerIntentionPanel from '@/editor/panels/CareerIntentionPanel.vue'
 import ProfilePanel from '@/editor/panels/ProfilePanel.vue'
+import { destroyPortfolioStore } from '@/composables/usePortfolioStore'
 
 const router = useRouter()
 const route = useRoute()
@@ -197,6 +198,8 @@ const onLogout = async () => {
     localStorage.removeItem('works-show:token')
     localStorage.removeItem('works-show:refreshToken')
     localStorage.removeItem('works-show:user')
+    // 重置全局简历 store 单例:SPA 内换账号登录时避免读到/覆盖上一用户的档案
+    destroyPortfolioStore()
     router.push('/login')
   }
 }

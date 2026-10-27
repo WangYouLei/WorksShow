@@ -9,6 +9,11 @@ server:
 spring:
   application:
     name: worksshow-backend
+  # 未显式激活 profile 时默认使用 dev(本地开发)。
+  # 生产环境必须设置 SPRING_PROFILES_ACTIVE=prod 等非 dev 值,
+  # 届时密钥/凭据仅从环境变量读取,缺失将启动失败(fail-fast)
+  profiles:
+    default: dev
   # Redis 配置 - 用于 token 黑名单存储
   redis:
     host: ${REDIS_HOST:localhost}
@@ -22,12 +27,13 @@ spring:
         min-idle: 0
         max-wait: -1ms
   # 数据源配置 - 请根据本地 MySQL 实际情况修改 username / password
+  # 凭据仅从环境变量注入(dev profile 提供本地开发默认值),不随源码泄漏生产凭据
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/works_show?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://127.0.0.1:3306/works_show?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
     # 生产环境务必通过环境变量 DB_USERNAME / DB_PASSWORD 注入,使用最小权限账号
-    username: root
-    password: 123456
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
   # JSON 序列化: 统一返回 GMT+8 时区
   jackson:
     time-zone: GMT+8
@@ -57,8 +63,8 @@ spring:
 # Mybatis-Plus 配置
 mybatis-plus:
   configuration:
-    # SQL 日志: 开发期输出到控制台,生产环境请改为 slf4j 或关闭
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # SQL 日志:默认关闭。开发期在 application-dev.yml 覆盖为 StdOutImpl,
+    # 生产应用 application-prod.yml 保持默认(关闭),避免 SQL 文本随响应日志泄漏
     map-underscore-to-camel-case: true
   global-config:
     db-config:
@@ -85,18 +91,22 @@ sa-token:
   is-concurrent: true
   # 在多人登录同一账号时,是否共用一个 token (true 共用,false 每次登录新建)
   is-share: false
+  # 仅从 Header 读取 token,禁止 Cookie 传递:
+  # token 黑名单按 Header token 校验,若允许 Cookie 传 token 会被绕过
+  is-read-cookie: false
   # token 风格: jwt (StateLess 模式必须)
   token-style: jwt
   # 是否输出操作日志
   is-log: false
-  # JWT 签名密钥,生产环境务必通过环境变量 JWT_SECRET 注入强随机密钥
-  jwt-secret-key: ${JWT_SECRET:worksshow-secret-key-for-jwt-signing-2026}
+  # JWT 签名密钥:仅从环境变量 JWT_SECRET 注入强随机密钥,无默认值。
+  # 缺失时启动失败(带默认值的密钥会随源码泄漏,可被用于伪造任意用户 token)
+  jwt-secret-key: ${JWT_SECRET}
 
 # EdgeOne Pages 部署配置
 edgeone:
   # AES 加密密钥(用于加解密用户的 EdgeOne API Token)
-  # 生产环境务必通过环境变量 EDGEONE_ENCRYPT_KEY 注入强随机密钥
-  encrypt-key: ${EDGEONE_ENCRYPT_KEY:worksshow-edgeone-default-aes-key-2026}
+  # 仅从环境变量 EDGEONE_ENCRYPT_KEY 注入强随机密钥,无默认值,缺失时启动失败
+  encrypt-key: ${EDGEONE_ENCRYPT_KEY}
 
 # 本服务器部署配置(简历 HTML 落盘并由本服务公开提供访问)
 local-deploy:
@@ -106,6 +116,7 @@ local-deploy:
   # 为空时按当前请求动态构造;反向代理(nginx 等)后建议显式配置为公网地址
   base-url: ${LOCAL_DEPLOY_BASE_URL:}
 
-logging:
-  level:
-    com.worksshow: debug
+# Logging:默认 INFO。开发期在 application-dev.yml 覆盖为 debug + StdOutImpl,
+# 生产环境保持默认(仅输出 warn/error),避免 SQL 与业务细节随日志泄漏
+# logging.level:
+#   com.worksshow: info

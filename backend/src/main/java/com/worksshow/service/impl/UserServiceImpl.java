@@ -307,8 +307,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(403, "账号已被禁用或不存在");
         }
 
-        // 删除旧 refresh token
-        refreshTokenService.deleteByUserId(userId);
+        // 原子删除旧 refresh token(仅当前 token,不影响该用户其他设备):
+        // 删除失败说明已被并发使用(重放),拒绝刷新。
+        // 此前 deleteByUserId 会连带作废全部设备 token,与 is-concurrent 多端登录矛盾
+        if (!refreshTokenService.deleteByToken(refreshToken)) {
+            throw new BusinessException(401, "refresh token 无效或已过期,请重新登录");
+        }
 
         // 生成新的 access token 和 refresh token
         StpUtil.login(userId,

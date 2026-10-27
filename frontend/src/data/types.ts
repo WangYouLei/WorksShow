@@ -9,8 +9,8 @@ export interface Profile {
   email: string
   location: string
   availability: string
-  stats: { label: string; value: string }[]
-  socials: { name: string; url: string; icon: string }[]
+  stats: { id: string; label: string; value: string }[]
+  socials: { id: string; name: string; url: string; icon: string }[]
 }
 
 export interface Work {

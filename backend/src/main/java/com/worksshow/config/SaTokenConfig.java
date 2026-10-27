@@ -8,11 +8,11 @@ import com.worksshow.exception.BusinessException;
 import com.worksshow.entity.User;
 import com.worksshow.service.TokenBlacklistService;
 import com.worksshow.service.UserService;
-import com.worksshow.security.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -36,6 +36,12 @@ public class SaTokenConfig implements WebMvcConfigurer {
 
     private final UserService userService;
     private final TokenBlacklistService tokenBlacklistService;
+    private final StringRedisTemplate stringRedisTemplate;
+
+    /** 用户状态缓存 key 前缀(值: 1-可用 0-不可用) */
+    private static final String USER_STATUS_CACHE_PREFIX = "user:status:";
+    /** 用户状态缓存时长:禁用账号最迟 30 秒后生效 */
+    private static final java.time.Duration USER_STATUS_CACHE_TTL = java.time.Duration.ofSeconds(30);
 
     /**
      * 切换为 JWT StateLess(无状态)模式
@@ -61,8 +67,9 @@ public class SaTokenConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new SaInterceptor(handle -> {
-                    // 1. 获取请求中的 token(剥离 Bearer 前缀)
-                    String token = UserContext.getCurrentToken();
+                    // 1. 获取请求中的 token(与 StpUtil 鉴权同源,保证黑名单校验的
+                    //    token 与实际鉴权 token 一致,避免读取来源不一致导致绕过)
+                    String token = StpUtil.getTokenValue();
                     // 2. 黑名单校验:已被主动失效的 token(登出/改密)直接拒绝
                     if (token != null && tokenBlacklistService.isBlacklisted(token)) {
                         log.warn("token 已被加入黑名单: {}", token);
@@ -73,11 +80,11 @@ public class SaTokenConfig implements WebMvcConfigurer {
                     StpUtil.checkLogin();
                     // 4. 查库校验用户当前状态:getById 受 @TableLogic 影响,
                     //    逻辑删除的用户返回 null;同时覆盖 status=0 的禁用账号
+                    //    (Redis 缓存 30 秒,避免每个请求固定回查一次 user 表)
                     Long userId = StpUtil.getLoginIdAsLong();
-                    User user = userService.getById(userId);
-                    if (user == null || user.getStatus() == null || user.getStatus() == 0) {
+                    if (!isUserUsable(userId)) {
                         log.warn("用户状态异常,拒绝访问: userId={}", userId);
-                        StpUtil.logout();
+                        // 注:StateLess 模式无服务端会话,无需(也无法)调用 StpUtil.logout()
                         throw new BusinessException(HttpStatus.FORBIDDEN.value(), "账号已被禁用或不存在,请联系管理员");
                     }
                 }))
@@ -93,5 +100,23 @@ public class SaTokenConfig implements WebMvcConfigurer {
                         "/sites/**",
                         "/error",
                         "/favicon.ico");
+    }
+
+    /**
+     * 校验用户是否可用(存在且未禁用),带 Redis 短缓存。
+     * <p>
+     * 此前每个受保护请求都回查一次 user 表,高并发下 user 表成为热点;
+     * 缓存 30 秒后,禁用/删除账号最迟 30 秒内生效(可接受的实时性折中)。
+     */
+    private boolean isUserUsable(Long userId) {
+        String cacheKey = USER_STATUS_CACHE_PREFIX + userId;
+        String cached = stringRedisTemplate.opsForValue().get(cacheKey);
+        if (cached != null) {
+            return "1".equals(cached);
+        }
+        User user = userService.getById(userId);
+        boolean usable = user != null && user.getStatus() != null && user.getStatus() != 0;
+        stringRedisTemplate.opsForValue().set(cacheKey, usable ? "1" : "0", USER_STATUS_CACHE_TTL);
+        return usable;
     }
 }

@@ -10,12 +10,12 @@ export const profile: Profile = {
   location: '中国 · 北京',
   availability: '通常 24 小时内回复',
   stats: [
-    { label: '上线产品', value: '12+' },
-    { label: '服务用户', value: '50K+' },
-    { label: '开源 Stars', value: '3.2K' },
+    { id: 'stat-1', label: '上线产品', value: '12+' },
+    { id: 'stat-2', label: '服务用户', value: '50K+' },
+    { id: 'stat-3', label: '开源 Stars', value: '3.2K' },
   ],
   socials: [
-    { name: 'GitHub', url: 'https://github.com', icon: 'github' },
-    { name: '邮箱', url: 'mailto:hello@example.com', icon: 'mail' },
+    { id: 'social-1', name: 'GitHub', url: 'https://github.com', icon: 'github' },
+    { id: 'social-2', name: '邮箱', url: 'mailto:hello@example.com', icon: 'mail' },
   ],
 }

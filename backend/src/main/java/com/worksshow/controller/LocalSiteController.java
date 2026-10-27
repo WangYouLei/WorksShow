@@ -64,6 +64,12 @@ public class LocalSiteController {
             String html = Files.readString(file, StandardCharsets.UTF_8);
             return ResponseEntity.ok()
                     .contentType(HTML_UTF8)
+                    // CSP sandbox(不含 allow-same-origin):页面以 opaque origin 运行,
+                    // 脚本无法访问本站 localStorage/Cookie/发起同源 API 请求,
+                    // 阻断用户部署内容窃取访问者 token(存储型 XSS)。
+                    // allow-scripts/allow-popups 保留模板页的弹窗与滚动动效、外链新窗口打开
+                    .header("Content-Security-Policy", "sandbox allow-scripts allow-popups")
+                    .header("X-Content-Type-Options", "nosniff")
                     .body(html);
         } catch (IOException e) {
             log.error("读取本地部署页面失败: key={}", key, e);

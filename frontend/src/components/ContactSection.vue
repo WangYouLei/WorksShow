@@ -2,6 +2,7 @@
 import { Github, Mail, ArrowUpRight } from 'lucide-vue-next'
 import { usePortfolio } from '@/composables/usePortfolio'
 import { profile as defaultProfile } from '@/data/profile'
+import { safeUrl } from '@/utils/safeUrl'
 
 const portfolio = usePortfolio()
 const profile = portfolio?.profile ?? defaultProfile
@@ -36,7 +37,7 @@ const profile = portfolio?.profile ?? defaultProfile
           <a
             v-for="social in profile.socials"
             :key="social.name"
-            :href="social.url"
+            :href="safeUrl(social.url)"
             target="_blank"
             rel="noopener noreferrer"
             class="social-link"

@@ -1,4 +1,4 @@
-import { reactive, watch, readonly } from 'vue'
+import { reactive, watch, readonly, effectScope, type EffectScope } from 'vue'
 import type { PortfolioData } from '@/templates/types'
 import { getTemplateDefaultData, templates } from '@/templates/registry'
 import {
@@ -41,10 +41,16 @@ let state: CacheState | null = null
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 /** 保存期间有新变更的标志:saveToServer 在 saving=true 时置 true,finally 中检查并重新调度 */
 let pendingSave = false
+/** 自动保存 watcher 的独立作用域(detached,不随组件卸载销毁) */
+let saveScope: EffectScope | null = null
 /** 各模板的 portfolio 实例 ID(templateId -> portfolioId) */
-const portfolioIds: Record<string, number> = {}
+let portfolioIds: Record<string, number> = {}
 /** 已确保创建过实例的模板集合(避免重复创建) */
 const ensuredTemplates = new Set<string>()
+/** 正在从服务端应用数据(loadFromServer 赋值期间为 true)。
+ *  赋值期间 watcher 不应触发保存:此时服务端刚返回的新值覆盖了模板默认数据,
+ *  触发保存属于冗余回写,且加载前用户可能已输入内容会被判定为"新数据"提交 */
+let applyingFromServer = false
 
 /** profile 锁定标志:锁定时编辑器中的 profile 修改不会保存到服务端 */
 let profileLocked = false
@@ -59,13 +65,29 @@ function clone<T>(v: T): T {
  * 将后端返回的用户档案(id: number)normalize 为前端类型(id: string)。
  * <p>
  * 前端 Work/Experience/Skill 的 id 用于 v-for key,统一转为 string。
+ * 后端懒创建:用户从未保存过档案时 profile 各字段为 null。null 视为"未设置",
+ * 回退到 fallback(模板默认数据),避免模板渲染崩溃(如 profile.name.slice);
+ * 用户主动清空的空字符串会原样返回,不会被默认值覆盖。
  */
-function normalizeUserProfile(backend: BackendUserProfile): PortfolioData {
+function normalizeUserProfile(backend: BackendUserProfile, fallback: Profile): PortfolioData {
+  const p = backend.profile
   return {
-    profile: backend.profile,
-    works: (backend.works || []).map((w) => ({ ...w, id: String(w.id ?? '') })),
+    profile: {
+      name: p.name ?? fallback.name,
+      nameEn: p.nameEn ?? fallback.nameEn,
+      title: p.title ?? fallback.title,
+      tagline: p.tagline ?? fallback.tagline,
+      bio: p.bio ?? fallback.bio,
+      email: p.email ?? fallback.email,
+      location: p.location ?? fallback.location,
+      availability: p.availability ?? fallback.availability,
+      stats: p.stats ?? fallback.stats,
+      socials: p.socials ?? fallback.socials,
+    },
+    // tags/items 为后端 JSON 列,可能为 null,兜底为数组避免模板中 .slice 崩溃
+    works: (backend.works || []).map((w) => ({ ...w, id: String(w.id ?? ''), tags: w.tags ?? [] })),
     experiences: (backend.experiences || []).map((e) => ({ ...e, id: String(e.id ?? '') })),
-    skills: (backend.skills || []).map((s) => ({ ...s, id: String(s.id ?? '') })),
+    skills: (backend.skills || []).map((s) => ({ ...s, id: String(s.id ?? ''), items: s.items ?? [] })),
   }
 }
 
@@ -110,18 +132,25 @@ function ensureCache(templateId?: string) {
   loadFromServer()
 
   // 深度监听,防抖保存到用户档案
-  watch(
-    data,
-    () => {
-      // 加载未完成时不保存,避免覆盖服务端数据
-      if (!state!.loaded) return
-      if (saveTimer) clearTimeout(saveTimer)
-      saveTimer = setTimeout(() => {
-        saveToServer()
-      }, 800)
-    },
-    { deep: true },
-  )
+  // 必须放在 detached 的 effectScope 中:首次调用发生在组件 setup 上下文,
+  // 普通 watch 会绑定该组件作用域,组件卸载时被销毁,导致自动保存静默失效
+  saveScope = effectScope(true)
+  saveScope.run(() => {
+    watch(
+      data,
+      () => {
+        // 加载未完成 / 正在应用服务端数据时不保存:
+        // - !loaded:初始阶段,还没拿到服务端数据,保存会用模板默认数据覆盖
+        // - applyingFromServer:赋值刚从服务端返回,触发保存是冗余回写
+        if (!state!.loaded || applyingFromServer) return
+        if (saveTimer) clearTimeout(saveTimer)
+        saveTimer = setTimeout(() => {
+          saveToServer()
+        }, 800)
+      },
+      { deep: true },
+    )
+  })
 
   // 确保当前模板的 portfolio 实例存在
   if (templateId) ensurePortfolioInstance(templateId)
@@ -133,21 +162,33 @@ function ensureCache(templateId?: string) {
  * loaded 仍置 true(让 UI 可编辑),用户刷新页面可重试加载。
  */
 async function loadFromServer() {
+  // 持有本地引用:await 期间 store 可能被 destroy(state 置 null),写孤儿对象无害
+  const s = state
+  if (!s) return
   try {
     const profile = await getUserProfile()
-    const normalized = normalizeUserProfile(profile)
-    state!.data.profile = normalized.profile
-    state!.data.works = normalized.works
-    state!.data.experiences = normalized.experiences
-    state!.data.skills = normalized.skills
-    state!.loadError = false
+    // fallback 传当前数据(初始为模板默认数据):服务端 null 字段保留默认值
+    const normalized = normalizeUserProfile(profile, s.data.profile)
+    // 赋值期间加 applyingFromServer 标志,防止 watcher 触发冗余回写:
+    // 刚从服务端拿到的旧数据覆盖了可能已被用户编辑过的模板默认数据,
+    // 触发保存等于立即把刚读到的数据又发回去,且会把用户输入的变更吞掉
+    applyingFromServer = true
+    try {
+      s.data.profile = normalized.profile
+      s.data.works = normalized.works
+      s.data.experiences = normalized.experiences
+      s.data.skills = normalized.skills
+    } finally {
+      applyingFromServer = false
+    }
+    s.loadError = false
     // 更新 profile 快照(用于编辑器锁定时恢复)
     profileSnapshot = clone(normalized.profile)
   } catch (e) {
     console.warn('[store] 从服务端加载用户档案失败,使用默认数据(保存将被阻止直到加载成功)', e)
-    state!.loadError = true
+    s.loadError = true
   } finally {
-    state!.loaded = true
+    s.loaded = true
   }
 }
 
@@ -173,6 +214,9 @@ async function ensurePortfolioInstance(templateId: string) {
       portfolioIds[templateId] = created.id
     }
   } catch (e) {
+    // 失败时回滚标记,允许后续重试
+    // (标记在异步操作前加入,若失败后仍保留,该模板将永远无法再创建实例)
+    ensuredTemplates.delete(templateId)
     console.warn(`[store] 确保 portfolio 实例失败: templateId=${templateId}`, e)
   }
 }
@@ -185,21 +229,23 @@ async function ensurePortfolioInstance(templateId: string) {
  */
 async function saveToServer() {
   if (!state) return
+  // 持有本地引用:await 期间 store 可能被 destroy(state 置 null),写孤儿对象无害
+  const s = state
   // 保存中:标记有新变更待保存,由当前保存的 finally 重新调度
-  if (state.saving) {
+  if (s.saving) {
     pendingSave = true
     return
   }
   // 加载失败时不保存,避免用默认数据覆盖服务端档案
-  if (state.loadError) {
+  if (s.loadError) {
     console.warn('[store] 加载失败,跳过保存以避免覆盖服务端数据')
     return
   }
-  state.saving = true
+  s.saving = true
   pendingSave = false
   try {
     // 保存时不传 id(后端整体替换,会重新分配 id)
-    const { data } = state
+    const { data } = s
     // profile 锁定时使用快照(编辑器中的 profile 修改不持久化)
     const profileToSave = profileLocked && profileSnapshot ? profileSnapshot : data.profile
     await saveUserProfile({
@@ -208,17 +254,17 @@ async function saveToServer() {
       experiences: data.experiences.map(({ id: _id, ...rest }) => rest),
       skills: data.skills.map(({ id: _id, ...rest }) => rest),
     })
-    state.saveError = false
-    state.lastSaved = Date.now()
+    s.saveError = false
+    s.lastSaved = Date.now()
     // 未锁定时更新快照为当前 profile(设置页保存后快照同步)
     if (!profileLocked) {
       profileSnapshot = clone(data.profile)
     }
   } catch (e) {
-    state.saveError = true
+    s.saveError = true
     console.error('[store] 保存用户档案失败', e)
   } finally {
-    state.saving = false
+    s.saving = false
     // 保存期间若有新变更,重新调度保存,避免变更丢失
     if (pendingSave) {
       pendingSave = false
@@ -228,6 +274,29 @@ async function saveToServer() {
       }, 800)
     }
   }
+}
+
+/**
+ * 销毁全局 store(登出/登录态失效时调用)。
+ * <p>
+ * store 为模块级单例:SPA 内登出后换账号登录(无整页刷新)时,
+ * 若不重置单例,下一个用户会看到并编辑上一个用户的档案(跨账号数据污染)。
+ * 销毁后再次调用 usePortfolioStore 会按模板默认数据重新初始化。
+ */
+export function destroyPortfolioStore(): void {
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+  }
+  saveScope?.stop()
+  saveScope = null
+  pendingSave = false
+  applyingFromServer = false
+  state = null
+  portfolioIds = {}
+  ensuredTemplates.clear()
+  profileLocked = false
+  profileSnapshot = null
 }
 
 /**

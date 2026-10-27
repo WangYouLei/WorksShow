@@ -164,16 +164,20 @@ public class DeploymentServiceImpl extends ServiceImpl<DeploymentMapper, Deploym
      * 无则生成新 key(32位随机hex)。
      */
     private String reuseOrCreateLocalKey(Long userId, Long portfolioId) {
-        Deployment last = lambdaQuery()
-                .eq(Deployment::getUserId, userId)
-                .eq(Deployment::getPortfolioId, portfolioId)
-                .eq(Deployment::getDeployType, Deployment.DEPLOY_TYPE_LOCAL)
-                .eq(Deployment::getStatus, Deployment.STATUS_SUCCESS)
-                .isNotNull(Deployment::getLocalKey)
-                .orderByDesc(Deployment::getCreateTime)
-                .last("LIMIT 1")
-                .one();
-        return last != null ? last.getLocalKey() : UUID.randomUUID().toString().replace("-", "");
+        // 按用户+简历串行化:并发部署同一简历时先查后插会产生两个 key,
+        // 导致新旧链接内容分叉(单实例部署足够)
+        synchronized (("local-deploy:" + userId + ":" + portfolioId).intern()) {
+            Deployment last = lambdaQuery()
+                    .eq(Deployment::getUserId, userId)
+                    .eq(Deployment::getPortfolioId, portfolioId)
+                    .eq(Deployment::getDeployType, Deployment.DEPLOY_TYPE_LOCAL)
+                    .eq(Deployment::getStatus, Deployment.STATUS_SUCCESS)
+                    .isNotNull(Deployment::getLocalKey)
+                    .orderByDesc(Deployment::getCreateTime)
+                    .last("LIMIT 1")
+                    .one();
+            return last != null ? last.getLocalKey() : UUID.randomUUID().toString().replace("-", "");
+        }
     }
 
     /** 构造本地站点完整访问URL:配置了 base-url 用配置,否则按当前请求动态构造 */

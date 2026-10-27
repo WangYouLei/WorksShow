@@ -44,15 +44,15 @@ public class CareerIntentionDTO {
     @Max(value = 3, message = "工作性质值不合法")
     private Integer workType;
 
-    /** 期望最低薪资(千元,如15表示15k) */
+    /** 期望最低薪资(元,如15000) */
     @Min(value = 0, message = "期望最低薪资不能为负数")
     private Integer salaryMin;
 
-    /** 期望最高薪资(千元,如25表示25k) */
+    /** 期望最高薪资(元,如25000) */
     @Min(value = 0, message = "期望最高薪资不能为负数")
     private Integer salaryMax;
 
-    /** 到岗时间(如"随时""一周内""一个月内") */
+    /** 到岗时间(日期字符串,如"2026-07-01") */
     @Size(max = 50, message = "到岗时间长度不能超过50")
     private String arrivalTime;
 

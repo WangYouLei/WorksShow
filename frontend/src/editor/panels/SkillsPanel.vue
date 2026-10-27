@@ -6,7 +6,7 @@ const store = usePortfolioStore(props.templateId)
 
 const addSkill = () => {
   store.skills.push({
-    id: 's' + Date.now(),
+    id: 's' + crypto.randomUUID(),
     category: '新分类',
     categoryEn: 'New',
     items: ['技能1'],

@@ -50,6 +50,14 @@ public class EdgeOnePagesClient {
     private static final Pattern PROJECT_ID_PATTERN =
             Pattern.compile("EDGEONE_PROJECT_ID=(\\S+)");
 
+    /** CLI 输出累积上限(字符),防止异常 CLI 无限输出撑爆内存 */
+    private static final int MAX_OUTPUT_LENGTH = 64 * 1024;
+
+    /** 项目名合法格式:字母/数字开头,仅字母/数字/下划线/连字符。
+     *  兜底校验:防止历史数据或绕过 DTO 校验的值以 "-" 开头被 CLI 解析为其他选项(参数注入) */
+    private static final Pattern PROJECT_NAME_PATTERN =
+            Pattern.compile("^[a-zA-Z0-9][a-zA-Z0-9-_]{0,99}$");
+
     /** 部署超时(秒),CLI 构建上传可能耗时 */
     @Value("${edgeone.deploy-timeout-seconds:180}")
     private long deployTimeoutSeconds;
@@ -63,6 +71,11 @@ public class EdgeOnePagesClient {
      * @return 部署结果
      */
     public EdgeOneDeployResult deploy(String html, String apiToken, String projectName) {
+        // 项目名兜底校验(防参数注入),历史配置数据可能未经过 DTO 校验
+        if (projectName == null || !PROJECT_NAME_PATTERN.matcher(projectName).matches()) {
+            return new EdgeOneDeployResult(false, null, null,
+                    "项目名不合法:须以字母或数字开头,仅可包含字母/数字/下划线/连字符");
+        }
         Path tempDir = null;
         try {
             // 1. 创建临时目录并写入 index.html
@@ -80,16 +93,28 @@ public class EdgeOnePagesClient {
             );
             pb.redirectErrorStream(true);
 
-            // 3. 启动进程并读取输出
+            // 3. 启动进程,由独立守护线程读取输出
+            //    (若在当前线程读到 EOF 再 waitFor,进程挂起不退出时 readLine 会永久阻塞,
+            //     超时与 destroyForcibly 永远执行不到,部署请求将无限期占用容器线程)
             Process process = pb.start();
             StringBuilder output = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    output.append(line).append('\n');
+            Thread outputReader = new Thread(() -> {
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        synchronized (output) {
+                            if (output.length() < MAX_OUTPUT_LENGTH) {
+                                output.append(line).append('\n');
+                            }
+                        }
+                    }
+                } catch (IOException ignored) {
+                    // 进程被强制销毁时输出流关闭,属预期情况
                 }
-            }
+            });
+            outputReader.setDaemon(true);
+            outputReader.start();
 
             // 4. 等待完成(带超时)
             boolean finished = process.waitFor(deployTimeoutSeconds, TimeUnit.SECONDS);
@@ -106,6 +131,9 @@ public class EdgeOnePagesClient {
                 return new EdgeOneDeployResult(false, null, null,
                         "部署超时(" + deployTimeoutSeconds + "秒)");
             }
+
+            // 进程已退出,等待输出线程收尾(最多5秒),保证 output 完整
+            outputReader.join(5000);
 
             int exitCode = process.exitValue();
             String stdout = output.toString();

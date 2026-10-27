@@ -6,7 +6,7 @@ const store = usePortfolioStore(props.templateId)
 
 const addExp = () => {
   store.experiences.unshift({
-    id: 'e' + Date.now(),
+    id: 'e' + crypto.randomUUID(),
     period: '2025 — 至今',
     title: '新职位',
     organization: '机构',

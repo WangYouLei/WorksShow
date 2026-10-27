@@ -100,6 +100,13 @@ export function resetPassword(data: ResetPasswordData) {
   return request.post<void>('/user/forgot-password/reset', data) as unknown as Promise<void>
 }
 
+/** 本地登录态判断:access token 或 refresh token 任一存在即视为已登录。
+ *  router 守卫、TemplateGallery 登录按钮等所有 UI 组件统一从此处取口径,
+ *  避免各处重复写 localStorage 读取且口径不一致导致点击死循环等问题 */
+export function hasAuth(): boolean {
+  return !!(localStorage.getItem('works-show:token') || localStorage.getItem('works-show:refreshToken'))
+}
+
 /** 退出登录(服务端将当前 token 加入黑名单并删除 refresh token,前端同时清除本地登录态) */
 export function logout() {
   return request.post<void>('/user/logout') as unknown as Promise<void>

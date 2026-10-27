@@ -9,6 +9,7 @@ import com.worksshow.security.UserContext;
 import com.worksshow.service.CareerIntentionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,12 +52,26 @@ public class CareerIntentionServiceImpl extends ServiceImpl<CareerIntentionMappe
                 .eq(CareerIntention::getUserId, userId));
 
         if (entity == null) {
-            // 不存在则新建
+            // 不存在则新建;并发首次保存会命中 userId 唯一索引兜底,
+            // 此时转为查询已插入的记录并更新,而非报"请勿重复提交"
             entity = new CareerIntention();
             entity.setUserId(userId);
             applyDTO(entity, dto);
-            save(entity);
-            log.info("新建求职意向成功: id={}, userId={}", entity.getId(), userId);
+            try {
+                save(entity);
+                log.info("新建求职意向成功: id={}, userId={}", entity.getId(), userId);
+            } catch (DuplicateKeyException e) {
+                entity = getOne(new LambdaQueryWrapper<CareerIntention>()
+                        .eq(CareerIntention::getUserId, userId)
+                        .last("LIMIT 1"));
+                if (entity == null) {
+                    // 理论不可达(唯一约束冲突说明记录存在),防御性重抛
+                    throw e;
+                }
+                applyDTO(entity, dto);
+                updateById(entity);
+                log.info("并发首次保存,转为更新求职意向: id={}, userId={}", entity.getId(), userId);
+            }
         } else {
             // 已存在则更新
             applyDTO(entity, dto);

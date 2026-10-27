@@ -51,13 +51,13 @@ public class CareerIntention {
     /** 工作性质:0-全职 1-兼职 2-实习 3-远程 */
     private Integer workType;
 
-    /** 期望最低薪资(千元,如15表示15k) */
+    /** 期望最低薪资(元,如15000) */
     private Integer salaryMin;
 
-    /** 期望最高薪资(千元,如25表示25k) */
+    /** 期望最高薪资(元,如25000) */
     private Integer salaryMax;
 
-    /** 到岗时间(如"随时""一周内""一个月内") */
+    /** 到岗时间(日期字符串,如"2026-07-01") */
     private String arrivalTime;
 
     /** 自我评价/求职宣言(可选) */

@@ -6,7 +6,7 @@ const store = usePortfolioStore(props.templateId)
 
 const addWork = () => {
   store.works.unshift({
-    id: 'w' + Date.now(),
+    id: 'w' + crypto.randomUUID(),
     title: '新作品',
     category: '分类',
     cover: '',
