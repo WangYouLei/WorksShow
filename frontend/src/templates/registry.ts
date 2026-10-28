@@ -36,6 +36,10 @@ import { particlePlanetMeta } from './particle-planet/meta'
 import { getParticlePlanetDefaultData } from './particle-planet/defaultData'
 import { exportParticlePlanetHtml } from './particle-planet/exportTemplate'
 import ParticlePlanetPreview from './particle-planet/ParticlePlanetPreview.vue'
+import { virus3DMeta } from './virus-3d/meta'
+import { getVirus3DDefaultData } from './virus-3d/defaultData'
+import { exportVirus3DHtml } from './virus-3d/exportTemplate'
+import Virus3DPreview from './virus-3d/Virus3DPreview.vue'
 
 /** 模板完整注册项（含默认数据获取器、预览组件、导出函数） */
 interface TemplateEntry extends TemplateMeta {
@@ -98,6 +102,12 @@ const registry: Record<string, TemplateEntry> = {
     getDefaultData: getParticlePlanetDefaultData,
     PreviewComponent: ParticlePlanetPreview,
     exportHtml: exportParticlePlanetHtml,
+  },
+  'virus-3d': {
+    ...virus3DMeta,
+    getDefaultData: getVirus3DDefaultData,
+    PreviewComponent: Virus3DPreview,
+    exportHtml: exportVirus3DHtml,
   },
 }
 
