@@ -1,11 +1,12 @@
 import type { Component } from 'vue'
-import type { PortfolioData, TemplateMeta } from './types'
+import type { PortfolioData, TemplateMeta, ThemeConfig } from './types'
 import { moYunMeta } from './mo-yun/meta'
 import { getMoYunDefaultData } from './mo-yun/defaultData'
 import { exportMoYunHtml } from './mo-yun/exportTemplate'
 import MoYunPreview from './mo-yun/MoYunPreview.vue'
 import { pastelMeta } from './pastel/meta'
 import { getPastelDefaultData } from './pastel/defaultData'
+import { pastelDefaultTheme } from './pastel/defaultTheme'
 import { exportPastelHtml } from './pastel/exportTemplate'
 import PastelPreview from './pastel/PastelPreview.vue'
 import { auroraMeta } from './aurora/meta'
@@ -45,7 +46,9 @@ import Virus3DPreview from './virus-3d/Virus3DPreview.vue'
 interface TemplateEntry extends TemplateMeta {
   getDefaultData: () => PortfolioData
   PreviewComponent: Component
-  exportHtml: (data: PortfolioData) => Promise<string>
+  exportHtml: (data: PortfolioData, theme?: ThemeConfig) => Promise<string>
+  /** 默认主题：主题层试点模板提供，缺省表示该模板暂不支持主题定制 */
+  defaultTheme?: ThemeConfig
 }
 
 const registry: Record<string, TemplateEntry> = {
@@ -60,6 +63,7 @@ const registry: Record<string, TemplateEntry> = {
     getDefaultData: getPastelDefaultData,
     PreviewComponent: PastelPreview,
     exportHtml: exportPastelHtml,
+    defaultTheme: pastelDefaultTheme,
   },
   'aurora': {
     ...auroraMeta,
@@ -131,6 +135,11 @@ export function getTemplatePreviewComponent(id: string): Component | undefined {
   return registry[id]?.PreviewComponent
 }
 
-export function getTemplateExporter(id: string): ((data: PortfolioData) => Promise<string>) | undefined {
+export function getTemplateExporter(id: string): ((data: PortfolioData, theme?: ThemeConfig) => Promise<string>) | undefined {
   return registry[id]?.exportHtml
+}
+
+export function getTemplateDefaultTheme(id: string): ThemeConfig | undefined {
+  const t = registry[id]?.defaultTheme
+  return t ? JSON.parse(JSON.stringify(t)) : undefined
 }

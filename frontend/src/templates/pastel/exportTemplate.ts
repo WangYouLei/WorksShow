@@ -1,7 +1,8 @@
 import { createApp, nextTick } from 'vue'
 import PastelPreview from './PastelPreview.vue'
-import type { PortfolioData } from '../types'
+import type { PortfolioData, ThemeConfig } from '../types'
 import { RUNTIME_JS } from './runtime'
+import { themeToCssText, FONT_LINKS } from '@/composables/useThemeVars'
 
 function escapeAttr(s: string): string {
   return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
@@ -14,10 +15,11 @@ function collectStyles(): string {
     .join('\n')
 }
 
-function buildHtml(data: PortfolioData, mainHtml: string, styles: string): string {
+function buildHtml(data: PortfolioData, mainHtml: string, styles: string, theme?: ThemeConfig): string {
   const title = `${data.profile.name} · 个人作品集`
-  const fontsHref =
-    'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;800;900&display=swap'
+  const fontsHref = FONT_LINKS[theme?.fontFamily ?? 'sans']
+  const themeCss = themeToCssText(theme)
+  const themeBlock = themeCss ? `:root {\n${themeCss}\n}\n` : ''
   return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -29,7 +31,7 @@ function buildHtml(data: PortfolioData, mainHtml: string, styles: string): strin
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="${fontsHref}">
 <style>
-${styles}
+${themeBlock}${styles}
 </style>
 </head>
 <body>
@@ -43,8 +45,9 @@ ${mainHtml}
  * 把粉彩模板的当前数据导出为单文件 HTML 字符串。
  * PastelPreview 已内联全部作品弹窗（初始隐藏，由 runtime 切换 is-open），
  * 故只需渲染一次组件，取 DOM 序列化，配合主文档样式表与原生 JS runtime 拼装成独立 HTML。
+ * 主题通过 :root 注入 --theme-* 变量，模板样式中的 var(..., 默认值) fallback 链自动生效。
  */
-export async function exportPastelHtml(data: PortfolioData): Promise<string> {
+export async function exportPastelHtml(data: PortfolioData, theme?: ThemeConfig): Promise<string> {
   const host = document.createElement('div')
   host.style.cssText = 'position:fixed;left:-99999px;top:0;width:1200px;visibility:hidden;'
   document.body.appendChild(host)
@@ -57,5 +60,5 @@ export async function exportPastelHtml(data: PortfolioData): Promise<string> {
   app.unmount()
   host.remove()
 
-  return buildHtml(data, mainHtml, collectStyles())
+  return buildHtml(data, mainHtml, collectStyles(), theme)
 }

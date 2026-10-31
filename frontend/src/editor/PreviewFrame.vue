@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { getTemplatePreviewComponent } from '@/templates/registry'
-import type { PortfolioData } from '@/templates/types'
+import type { PortfolioData, ThemeConfig } from '@/templates/types'
+import { themeToCssVars } from '@/composables/useThemeVars'
 
-const props = defineProps<{ data: PortfolioData; templateId: string }>()
+const props = defineProps<{ data: PortfolioData; templateId: string; theme?: ThemeConfig }>()
 const Comp = computed(() => getTemplatePreviewComponent(props.templateId))
+/** 主题变量注入预览容器：CSS 自定义属性穿透 scoped 样式继承到模板根元素 */
+const themeVars = computed(() => themeToCssVars(props.theme))
 </script>
 
 <template>
-  <div class="preview-shell">
+  <div class="preview-shell" :style="themeVars">
     <component :is="Comp" v-if="Comp" :data="data" />
     <div v-else class="preview-empty">模板未找到：{{ templateId }}</div>
   </div>

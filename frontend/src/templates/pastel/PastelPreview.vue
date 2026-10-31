@@ -278,26 +278,27 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
 
 <style scoped>
 .p-page {
-  --p-bg: #fbf7f2;
-  --p-bg-soft: #f4ede4;
-  --p-card: #ffffff;
-  --p-ink: #3d3536;
-  --p-ink-soft: #7a6f6a;
-  --p-ink-mute: #a89e99;
-  --p-pink: #e8a0a0;
-  --p-pink-soft: #f6dcdc;
-  --p-mint: #9fc7b4;
-  --p-mint-soft: #dceee4;
-  --p-lilac: #c3b1e1;
-  --p-border: #ece2d6;
-  --radius-sm: 10px;
-  --radius-md: 18px;
-  --radius-lg: 28px;
-  --shadow-soft: 0 18px 50px -24px rgba(60, 45, 35, 0.22);
-  --shadow-lift: 0 30px 70px -30px rgba(60, 45, 35, 0.32);
+  /* 主题注入层：--theme-* 由编辑器预览容器或导出 HTML 的 :root 注入，缺省回落到模板原配色 */
+  --p-bg: var(--theme-bg, #fbf7f2);
+  --p-bg-soft: var(--theme-bg-soft, #f4ede4);
+  --p-card: var(--theme-card, #ffffff);
+  --p-ink: var(--theme-ink, #3d3536);
+  --p-ink-soft: var(--theme-ink-soft, #7a6f6a);
+  --p-ink-mute: var(--theme-ink-mute, #a89e99);
+  --p-pink: var(--theme-primary, #e8a0a0);
+  --p-pink-soft: color-mix(in srgb, var(--p-pink) 16%, var(--p-card));
+  --p-mint: var(--theme-secondary, #9fc7b4);
+  --p-mint-soft: color-mix(in srgb, var(--p-mint) 22%, var(--p-card));
+  --p-lilac: var(--theme-tertiary, #c3b1e1);
+  --p-border: var(--theme-border, #ece2d6);
+  --radius-sm: calc(10px * var(--theme-radius-scale, 1));
+  --radius-md: calc(18px * var(--theme-radius-scale, 1));
+  --radius-lg: calc(28px * var(--theme-radius-scale, 1));
+  --shadow-soft: 0 18px 50px -24px color-mix(in srgb, var(--p-ink) 22%, transparent);
+  --shadow-lift: 0 30px 70px -30px color-mix(in srgb, var(--p-ink) 32%, transparent);
   background: var(--p-bg);
   color: var(--p-ink);
-  font-family: 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: var(--theme-font, 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', sans-serif);
   font-size: 15px;
   line-height: 1.75;
   min-height: 100vh;
@@ -318,7 +319,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
   justify-content: space-between;
   gap: 24px;
   padding: 18px clamp(20px, 5vw, 64px);
-  background: rgba(251, 247, 242, 0.72);
+  background: color-mix(in srgb, var(--p-bg) 72%, transparent);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid transparent;
@@ -326,8 +327,8 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
 }
 .p-navbar.is-scrolled {
   border-bottom-color: var(--p-border);
-  box-shadow: 0 8px 30px -20px rgba(60, 45, 35, 0.18);
-  background: rgba(251, 247, 242, 0.92);
+  box-shadow: 0 8px 30px -20px color-mix(in srgb, var(--p-ink) 18%, transparent);
+  background: color-mix(in srgb, var(--p-bg) 92%, transparent);
 }
 .p-brand {
   display: inline-flex;
@@ -346,7 +347,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
   color: #fff;
   background: linear-gradient(135deg, var(--p-pink) 0%, var(--p-lilac) 100%);
   border-radius: 12px;
-  box-shadow: 0 6px 18px -8px rgba(232, 160, 160, 0.7);
+  box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--p-pink) 70%, transparent);
 }
 .brand-name {
   font-weight: 600;
@@ -396,12 +397,12 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
 }
 .btn-primary {
   color: #fff;
-  background: linear-gradient(135deg, var(--p-pink) 0%, #d98a8a 100%);
-  box-shadow: 0 12px 28px -12px rgba(232, 160, 160, 0.8);
+  background: linear-gradient(135deg, var(--p-pink) 0%, color-mix(in srgb, var(--p-pink) 88%, var(--p-ink)) 100%);
+  box-shadow: 0 12px 28px -12px color-mix(in srgb, var(--p-pink) 80%, transparent);
 }
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 36px -14px rgba(232, 160, 160, 0.9);
+  box-shadow: 0 18px 36px -14px color-mix(in srgb, var(--p-pink) 90%, transparent);
 }
 .btn-ghost {
   color: var(--p-ink);
@@ -504,7 +505,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
 }
 .feature-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 40px 80px -32px rgba(60, 45, 35, 0.4);
+  box-shadow: 0 40px 80px -32px color-mix(in srgb, var(--p-ink) 40%, transparent);
 }
 .feature-cover {
   position: relative;
@@ -656,7 +657,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
   padding: 4px 10px;
   font-size: 12px;
   color: var(--p-ink);
-  background: rgba(255, 255, 255, 0.9);
+  background: color-mix(in srgb, var(--p-card) 90%, transparent);
   border-radius: 999px;
   backdrop-filter: blur(4px);
 }
@@ -869,7 +870,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
   grid-template-columns: 1.3fr 1fr;
   gap: clamp(32px, 5vw, 56px);
   align-items: center;
-  background: linear-gradient(135deg, #fff 0%, var(--p-pink-soft) 100%);
+  background: linear-gradient(135deg, var(--p-card) 0%, var(--p-pink-soft) 100%);
   border: 1px solid var(--p-border);
   border-radius: var(--radius-lg);
   padding: clamp(36px, 5vw, 56px);
@@ -972,7 +973,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 14px 30px -10px rgba(232, 160, 160, 0.8);
+  box-shadow: 0 14px 30px -10px color-mix(in srgb, var(--p-pink) 80%, transparent);
   transition: transform 0.2s ease;
 }
 .back-top:hover {
@@ -995,7 +996,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
 .modal-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(60, 45, 35, 0.45);
+  background: color-mix(in srgb, var(--p-ink) 45%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -1010,7 +1011,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
   border: 1px solid var(--p-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: 0 40px 90px -30px rgba(60, 45, 35, 0.5);
+  box-shadow: 0 40px 90px -30px color-mix(in srgb, var(--p-ink) 50%, transparent);
 }
 .modal-close {
   position: absolute;
@@ -1022,7 +1023,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
   width: 40px;
   height: 40px;
   color: var(--p-ink);
-  background: rgba(255, 255, 255, 0.85);
+  background: color-mix(in srgb, var(--p-card) 85%, transparent);
   border: 1px solid var(--p-border);
   border-radius: 50%;
   cursor: pointer;
@@ -1051,7 +1052,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
   padding: 4px 12px;
   font-size: 12px;
   color: var(--p-ink);
-  background: rgba(255, 255, 255, 0.9);
+  background: color-mix(in srgb, var(--p-card) 90%, transparent);
   border-radius: 999px;
   backdrop-filter: blur(4px);
 }

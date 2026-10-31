@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronsLeft, ChevronsRight } from 'lucide-vue-next'
+import { ChevronsLeft, ChevronsRight, Sparkles } from 'lucide-vue-next'
 import { getTemplateMeta } from '@/templates/registry'
 import { usePortfolioStore, resetPortfolioStore, getSaveStatus, saveNow, setProfileLocked } from '@/composables/usePortfolioStore'
+import { useThemeStore } from '@/composables/useThemeStore'
 import { downloadPortfolioHtml } from '@/composables/useExporter'
 import DeployDialog from '@/components/DeployDialog.vue'
 import PreviewFrame from './PreviewFrame.vue'
@@ -12,11 +13,14 @@ import WorksPanel from './panels/WorksPanel.vue'
 import SkillsPanel from './panels/SkillsPanel.vue'
 import ExperiencesPanel from './panels/ExperiencesPanel.vue'
 import CareerIntentionPanel from './panels/CareerIntentionPanel.vue'
+import ThemePanel from './panels/ThemePanel.vue'
+import ChatPanel from '@/components/ai/ChatPanel.vue'
 
 const props = defineProps<{ templateId: string }>()
 const router = useRouter()
 const meta = computed(() => getTemplateMeta(props.templateId))
 const store = usePortfolioStore(props.templateId)
+const theme = useThemeStore(props.templateId)
 const saveStatus = getSaveStatus(props.templateId)
 
 // 保存状态文案
@@ -40,11 +44,15 @@ const tabs = [
   { id: 'skills', label: '技能' },
   { id: 'experiences', label: '经历' },
   { id: 'career', label: '求职意向' },
+  { id: 'theme', label: '主题' },
 ] as const
 const activeTab = ref<typeof tabs[number]['id']>('profile')
 
 // 左侧编辑面板收起 / 展开
 const formCollapsed = ref(false)
+
+// AI 助理面板开合
+const showAi = ref(false)
 
 const onReset = () => {
   if (confirm('确定重置为模板默认数据？这将覆盖你的所有简历内容（所有模板共享同一份档案）。')) {
@@ -58,7 +66,7 @@ const onExport = async () => {
   if (exporting.value) return
   exporting.value = true
   try {
-    await downloadPortfolioHtml(store, props.templateId)
+    await downloadPortfolioHtml(store, props.templateId, undefined, theme.value)
   } catch (e) {
     console.error(e)
     alert('导出失败：' + (e as Error).message)
@@ -93,6 +101,10 @@ onUnmounted(() => setProfileLocked(false))
         <button class="export-btn" type="button" :disabled="exporting" @click="onExport">
           {{ exporting ? '导出中…' : '下载 HTML' }}
         </button>
+        <button class="ai-btn" type="button" :class="{ 'is-open': showAi }" @click="showAi = !showAi">
+          <Sparkles :size="14" :stroke-width="2" />
+          AI 助理
+        </button>
         <button class="deploy-btn" type="button" @click="showDeploy = true">部署</button>
       </div>
     </header>
@@ -116,7 +128,8 @@ onUnmounted(() => setProfileLocked(false))
           <WorksPanel v-else-if="activeTab === 'works'" :template-id="props.templateId" />
           <SkillsPanel v-else-if="activeTab === 'skills'" :template-id="props.templateId" />
           <ExperiencesPanel v-else-if="activeTab === 'experiences'" :template-id="props.templateId" />
-          <CareerIntentionPanel v-else :no-save="true" />
+          <CareerIntentionPanel v-else-if="activeTab === 'career'" :no-save="true" />
+          <ThemePanel v-else :template-id="props.templateId" />
         </div>
       </aside>
       <!-- 左侧面板收起 / 展开按钮（位于面板与预览区分界线上） -->
@@ -131,7 +144,10 @@ onUnmounted(() => setProfileLocked(false))
         <ChevronsRight v-else :size="16" :stroke-width="2" />
       </button>
       <section class="editor-preview">
-        <PreviewFrame :data="store" :template-id="props.templateId" />
+        <PreviewFrame :data="store" :template-id="props.templateId" :theme="theme" />
+        <Transition name="ai-slide">
+          <ChatPanel v-if="showAi" :template-id="props.templateId" @close="showAi = false" />
+        </Transition>
       </section>
     </div>
 
@@ -287,6 +303,37 @@ onUnmounted(() => setProfileLocked(false))
 .deploy-btn:hover {
   background: rgba(212, 165, 116, 0.1);
   border-color: #d4a574;
+}
+.ai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #0a0a0f;
+  background: linear-gradient(135deg, #d4a574, #c8925a);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+.ai-btn:hover {
+  filter: brightness(1.1);
+}
+.ai-btn.is-open {
+  background: transparent;
+  color: #d4a574;
+  border: 1px solid rgba(212, 165, 116, 0.5);
+}
+/* AI 面板滑入滑出 */
+.ai-slide-enter-active,
+.ai-slide-leave-active {
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.ai-slide-enter-from,
+.ai-slide-leave-to {
+  transform: translateX(30px);
+  opacity: 0;
 }
 .editor-body {
   flex: 1;

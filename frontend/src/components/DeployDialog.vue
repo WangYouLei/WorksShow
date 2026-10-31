@@ -2,6 +2,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePortfolioStore, ensurePortfolioId } from '@/composables/usePortfolioStore'
+import { useThemeStore } from '@/composables/useThemeStore'
 import { getTemplateExporter } from '@/templates/registry'
 import {
   deploy,
@@ -94,7 +95,7 @@ const onDeploy = async () => {
 
   deploying.value = true
   try {
-    const html = await exporter(usePortfolioStore(props.templateId))
+    const html = await exporter(usePortfolioStore(props.templateId), useThemeStore(props.templateId).value)
     // 4. 调用部署 API(同步,后端执行 EdgeOne CLI / 本地落盘)
     const res = await deploy({
       portfolioId,

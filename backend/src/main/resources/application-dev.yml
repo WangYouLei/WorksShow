@@ -22,6 +22,10 @@ sa-token:
 edgeone:
   encrypt-key: c0d75983444ce411afaae3a338ad983671a1953da8639f85
 
+# 本地开发复用环境中已有的百炼密钥;生产环境请通过 AI_API_KEY 注入
+ai:
+  api-key: ${Spring_ai_alibaba:}
+
 # 开发期开启 SQL 控制台输出 + DEBUG 日志,方便本地调试
 mybatis-plus:
   configuration:

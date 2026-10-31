@@ -78,12 +78,35 @@ export interface TemplateMeta {
   author: string
 }
 
+/**
+ * 主题配置：全部字段可选，缺省项回落到模板默认值
+ * 颜色为自由 hex；字体/圆角/密度为枚举，防止 AI 产出离谱值
+ */
+export interface ThemeConfig {
+  palette?: {
+    primary?: string
+    secondary?: string
+    tertiary?: string
+    bg?: string
+    bgSoft?: string
+    card?: string
+    ink?: string
+    inkSoft?: string
+    border?: string
+  }
+  fontFamily?: 'sans' | 'serif' | 'rounded'
+  radius?: 'sharp' | 'soft' | 'round'
+  density?: 'compact' | 'normal' | 'loose'
+}
+
 /** 完整模板定义：选择、预览、导出均依赖此接口 */
 export interface Template extends TemplateMeta {
   /** 编辑器内 iframe 预览用的渲染组件，接收 PortfolioData 作为 prop */
   PreviewComponent: Component
   /** 用户首次进入编辑器时填充的默认数据 */
   defaultData: PortfolioData
-  /** 导出为单文件 HTML 字符串（含内联 CSS + 原生 JS runtime） */
-  exportHtml: (data: PortfolioData) => string
+  /** 导出为单文件 HTML 字符串（含内联 CSS + 原生 JS runtime），可传入主题覆盖 */
+  exportHtml: (data: PortfolioData, theme?: ThemeConfig) => string | Promise<string>
+  /** 模板默认主题（主题层试点的模板提供；未提供的模板不支持主题定制） */
+  defaultTheme?: ThemeConfig
 }

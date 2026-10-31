@@ -108,6 +108,22 @@ edgeone:
   # 仅从环境变量 EDGEONE_ENCRYPT_KEY 注入强随机密钥,无默认值,缺失时启动失败
   encrypt-key: ${EDGEONE_ENCRYPT_KEY}
 
+# AI 对话配置(任意 OpenAI 兼容接口,默认阿里云百炼 DashScope 兼容模式)
+# 密钥仅从环境变量 AI_API_KEY 注入;dev profile 下回落到本地环境变量
+ai:
+  base-url: ${AI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+  api-key: ${AI_API_KEY:}
+  model: ${AI_MODEL:qwen-plus}
+  max-tokens: ${AI_MAX_TOKENS:1500}
+  temperature: ${AI_TEMPERATURE:0.3}
+  # 每个用户每日对话次数上限
+  daily-limit: ${AI_DAILY_LIMIT:30}
+  # AI 模板生成:每日次数上限与单次输出 token 上限
+  template-daily-limit: ${AI_TEMPLATE_DAILY_LIMIT:5}
+  template-max-tokens: ${AI_TEMPLATE_MAX_TOKENS:8000}
+  # 流式读取超时(秒)
+  timeout-seconds: ${AI_TIMEOUT_SECONDS:120}
+
 # 本服务器部署配置(简历 HTML 落盘并由本服务公开提供访问)
 local-deploy:
   # 站点文件存储目录(相对路径基于服务运行目录,部署时自动创建)

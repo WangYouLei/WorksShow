@@ -445,3 +445,52 @@ ALTER TABLE `deployment`
     ADD COLUMN `local_key`   VARCHAR(64) DEFAULT NULL COMMENT '本地部署站点key(公开访问路径 /api/sites/{key},EdgeOne部署为NULL;同一简历重复部署复用,链接不变)' AFTER `deploy_type`;
 
 */ -- 迁移块结束
+
+-- ============================================================
+-- AI 对话消息表 ai_message
+-- ------------------------------------------------------------
+-- 说明: 记录用户与 AI 助理在某份简历上的多轮对话。
+-- - 对话按 portfolio_id 分组,多轮上下文取最近 N 条即可
+-- - role: user-用户提问 / assistant-AI 回复
+-- - content: AI 回复的自然语言正文(用户消息即其提问原文)
+-- - actions_json: AI 建议的修改动作(JSON 数组),仅 assistant 消息有值;
+--   由前端展示"变更卡片"并确认后应用,AI 不直接落库改数据
+-- - 清空对话即删除该 portfolio 下全部消息;每日配额按 create_time 统计
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS `ai_message` (
+    `id`           BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `user_id`      BIGINT       NOT NULL COMMENT '所属用户ID',
+    `portfolio_id` BIGINT       NOT NULL COMMENT '所属简历ID',
+    `role`         VARCHAR(20)  NOT NULL COMMENT '角色:user-用户 assistant-AI',
+    `content`      TEXT         DEFAULT NULL COMMENT '对话正文',
+    `actions_json` TEXT         DEFAULT NULL COMMENT 'AI 建议的修改动作(JSON 数组)',
+    `create_time`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_portfolio_user` (`portfolio_id`, `user_id`),
+    KEY `idx_user_time` (`user_id`, `create_time`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'AI 对话消息';
+
+-- ============================================================
+-- AI 生成模板表 ai_template
+-- ------------------------------------------------------------
+-- 说明: AI 按用户需求生成的完整单文件 HTML 模板。
+-- - requirement: 用户的原始设计需求描述
+-- - html: 生成产物(经后端提取清洗: 截取 <!DOCTYPE..</html>,
+--   剥离外链 <script src>)
+-- - portfolio_id: 懒创建的简历实例ID(首次部署时创建,复用现有部署链路)
+-- - 生成不可表单编辑;重新生成会写入新记录并注入最新档案数据
+-- - 每日生成配额按 create_time 统计(生成成本远高于对话)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS `ai_template` (
+    `id`           BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `user_id`      BIGINT        NOT NULL COMMENT '所属用户ID',
+    `name`         VARCHAR(50)   NOT NULL COMMENT '模板名称',
+    `requirement`  VARCHAR(1000) DEFAULT NULL COMMENT '用户的设计需求描述',
+    `html`         LONGTEXT      DEFAULT NULL COMMENT '生成的完整单文件 HTML',
+    `portfolio_id` BIGINT        DEFAULT NULL COMMENT '懒创建的简历实例ID(首次部署时创建)',
+    `create_time`  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_time` (`user_id`, `create_time`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'AI 生成模板';

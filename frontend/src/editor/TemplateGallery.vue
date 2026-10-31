@@ -1,12 +1,25 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { Sparkles } from 'lucide-vue-next'
 import { templates } from '@/templates/registry'
 import { hasAuth } from '@/api/auth'
+import AiTemplateStudio from '@/components/ai/AiTemplateStudio.vue'
 
 const router = useRouter()
 // 登录态直接调用 hasAuth() (无 computed:hasAuth 内部读 localStorage 非响应式,
 // 但 TemplateGallery 在路由变化时重建,每次 setup 重新判断足够)
 const isLoggedIn = () => hasAuth()
+
+// AI 定制模板弹窗(需登录)
+const showStudio = ref(false)
+const openStudio = () => {
+  if (!isLoggedIn()) {
+    router.push('/login')
+    return
+  }
+  showStudio.value = true
+}
 
 const useTemplate = (id: string) => {
   router.push({ name: 'editor', params: { templateId: id } })
@@ -17,6 +30,10 @@ const useTemplate = (id: string) => {
   <div class="gallery">
     <!-- 右上角固定按钮 -->
     <div class="top-right-actions">
+      <button class="ai-template-btn" @click="openStudio">
+        <Sparkles :size="14" :stroke-width="2" />
+        AI 定制模板
+      </button>
       <button v-if="isLoggedIn()" class="account-link" @click="router.push('/account')">账号管理</button>
       <button v-else class="account-link" @click="router.push('/login')">登录 / 注册</button>
     </div>
@@ -53,6 +70,8 @@ const useTemplate = (id: string) => {
         </div>
       </article>
     </div>
+
+    <AiTemplateStudio v-model="showStudio" />
   </div>
 </template>
 
@@ -86,6 +105,23 @@ const useTemplate = (id: string) => {
 }
 .account-link:hover {
   background: rgba(212, 165, 116, 0.2);
+}
+.ai-template-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  margin-right: 10px;
+  font-size: 13px;
+  color: #0a0a0f;
+  background: linear-gradient(135deg, #d4a574, #c8925a);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: filter 0.2s;
+}
+.ai-template-btn:hover {
+  filter: brightness(1.1);
 }
 .gallery-header h1 {
   font-size: clamp(32px, 5vw, 52px);
