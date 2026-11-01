@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { safeUrl } from '@/utils/safeUrl'
 import { X, ArrowUpRight, Mail, MapPin, Github } from 'lucide-vue-next'
 import type { PortfolioData } from '../types'
@@ -10,15 +10,31 @@ const props = defineProps<{ data: PortfolioData }>()
 const rootEl = ref<HTMLElement | null>(null)
 let dispose: (() => void) | null = null
 
+// 区块渲染开关：对应数据为空时同步过滤阶段（面板 [data-panel] / 导航 [data-nav] / 标题 [data-hd] 三方按索引对齐）
+const hasAbout = computed(() => {
+  const p = props.data.profile
+  return Boolean(p.bio || p.availability || p.location)
+})
+const hasStats = computed(() => props.data.profile.stats.length > 0)
+const hasWorks = computed(() => props.data.works.length > 0)
+const hasSkills = computed(() => props.data.skills.length > 0)
+const hasContact = computed(() => {
+  const p = props.data.profile
+  return Boolean(p.email || p.location || p.availability || p.socials?.length)
+})
+
 /** 病毒感染生命周期六阶段，顺序必须与 [data-panel] / [data-nav] / [data-hd] 一致 */
-const stages = [
-  { cn: '觉醒', en: 'Awakening', num: 'I', line: '一份来自深空的病原档案苏醒' },
-  { cn: '附着', en: 'Attachment', num: 'II', line: '病毒贴近宿主——附着，正是认识我的开始' },
-  { cn: '注入', en: 'Penetration', num: 'III', line: '遗传物质注入，数据沿轨道汇入' },
-  { cn: '复制', en: 'Replication', num: 'IV', line: '病毒开始复制，每个子体都是一件作品' },
-  { cn: '装配', en: 'Assembly', num: 'V', line: '蛋白质亚基按序列扫描，装配成技能' },
-  { cn: '释放', en: 'Release', num: 'VI', line: '裂解释放——现在，轮到你被感染' },
-] as const
+const stages = computed(() => {
+  const all = [
+    { show: true, cn: '觉醒', en: 'Awakening', num: 'I', line: '一份来自深空的病原档案苏醒' },
+    { show: hasAbout.value, cn: '附着', en: 'Attachment', num: 'II', line: '病毒贴近宿主——附着，正是认识我的开始' },
+    { show: hasStats.value, cn: '注入', en: 'Penetration', num: 'III', line: '遗传物质注入，数据沿轨道汇入' },
+    { show: hasWorks.value, cn: '复制', en: 'Replication', num: 'IV', line: '病毒开始复制，每个子体都是一件作品' },
+    { show: hasSkills.value, cn: '装配', en: 'Assembly', num: 'V', line: '蛋白质亚基按序列扫描，装配成技能' },
+    { show: hasContact.value, cn: '释放', en: 'Release', num: 'VI', line: '裂解释放——现在，轮到你被感染' },
+  ]
+  return all.filter((s) => s.show)
+})
 
 onMounted(() => {
   if (!rootEl.value) return
@@ -102,7 +118,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- 1 附着 -->
-      <section class="vi-view" data-panel="1">
+      <section v-if="hasAbout" class="vi-view" data-panel="1">
         <h3 class="vi-h">关于宿主</h3>
         <p class="vi-p">{{ data.profile.bio }}</p>
         <dl class="vi-facts">
@@ -113,7 +129,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- 2 注入 -->
-      <section class="vi-view" data-panel="2">
+      <section v-if="hasStats" class="vi-view" data-panel="2">
         <h3 class="vi-h">注入数据</h3>
         <div class="vi-stats">
           <div v-for="s in data.profile.stats" :key="s.label">
@@ -125,7 +141,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- 3 复制 -->
-      <section class="vi-view" data-panel="3">
+      <section v-if="hasWorks" class="vi-view" data-panel="3">
         <h3 class="vi-h">复制子体</h3>
         <p class="vi-p">病毒已完成复制——每个漂浮的子病毒都是一件作品，点击任意子体查看详情。</p>
         <ul class="vi-works">
@@ -143,7 +159,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- 4 装配 -->
-      <section class="vi-view" data-panel="4">
+      <section v-if="hasSkills" class="vi-view" data-panel="4">
         <h3 class="vi-h">装配序列</h3>
         <div v-for="g in data.skills" :key="g.id" class="vi-skill">
           <b>{{ g.category }}<i>{{ g.categoryEn }}</i></b>
@@ -152,7 +168,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- 5 释放 -->
-      <section class="vi-view" data-panel="5">
+      <section v-if="hasContact" class="vi-view" data-panel="5">
         <h3 class="vi-h">裂解释放</h3>
         <a class="vi-mail" :href="'mailto:' + data.profile.email">{{ data.profile.email }}</a>
         <dl class="vi-facts">
@@ -190,7 +206,7 @@ onBeforeUnmount(() => {
         <button class="modal-close" aria-label="关闭" type="button">
           <X :size="20" :stroke-width="1.75" />
         </button>
-        <div class="vi-modal-cover">
+        <div v-if="w.cover" class="vi-modal-cover">
           <img :src="w.cover" :alt="w.title" loading="lazy" />
         </div>
         <div class="vi-modal-body">

@@ -11,7 +11,7 @@ const emit = defineEmits<{ select: [work: Work] }>()
 </script>
 
 <template>
-  <section id="works" class="section works">
+  <section v-if="works.length" id="works" class="section works">
     <div class="container">
       <div class="works-head">
         <div>
@@ -35,7 +35,7 @@ const emit = defineEmits<{ select: [work: Work] }>()
           :data-work-id="work.id"
           @click="emit('select', work)"
         >
-          <div class="work-cover">
+          <div v-if="work.cover" class="work-cover">
             <img :src="work.cover" :alt="work.title" loading="lazy" />
             <span class="work-year font-mono">{{ work.year }}</span>
             <span class="work-arrow">

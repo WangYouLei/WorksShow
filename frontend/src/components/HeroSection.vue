@@ -16,6 +16,15 @@ const scrollToWorks = () => {
 const scrollToContact = () => {
   document.querySelector('#contact')?.scrollIntoView({ behavior: 'smooth' })
 }
+
+// 区块渲染开关：目标区块数据为空时不渲染对应入口（导出 HTML 同步生效）
+const hasWorks = Boolean(portfolio?.works?.length)
+const hasAbout = Boolean(
+  profile.bio || profile.availability || profile.location || profile.stats?.length,
+)
+const hasContact = Boolean(
+  profile.email || profile.location || profile.availability || profile.socials?.length,
+)
 </script>
 
 <template>
@@ -45,16 +54,16 @@ const scrollToContact = () => {
       <p class="hero-tagline reveal reveal-delay-3">{{ profile.tagline }}</p>
 
       <div class="hero-actions reveal reveal-delay-4">
-        <a href="#works" class="btn btn-primary" @click.prevent="scrollToWorks">
+        <a v-if="hasWorks" href="#works" class="btn btn-primary" @click.prevent="scrollToWorks">
           浏览作品
         </a>
-        <a href="#contact" class="btn btn-ghost" @click.prevent="scrollToContact">
+        <a v-if="hasContact" href="#contact" class="btn btn-ghost" @click.prevent="scrollToContact">
           合作邀约
         </a>
       </div>
     </div>
 
-    <button class="scroll-hint" aria-label="向下滚动" @click="scrollToAbout">
+    <button v-if="hasAbout" class="scroll-hint" aria-label="向下滚动" @click="scrollToAbout">
       <span class="scroll-text font-mono">SCROLL</span>
       <span class="scroll-line"></span>
     </button>

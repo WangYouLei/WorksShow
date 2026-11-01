@@ -13,6 +13,19 @@ let dispose: (() => void) | null = null
 const initials = computed(() => props.data.profile.name.slice(0, 1))
 const stats = computed(() => props.data.profile.stats)
 
+// 区块渲染开关：对应数据为空时同步隐藏面板与导航按钮（引擎按实时索引对齐，顺序一致即可）
+const hasAbout = computed(() => {
+  const p = props.data.profile
+  return Boolean(p.bio || p.availability || p.location)
+})
+const hasStats = computed(() => props.data.profile.stats.length > 0)
+const hasWorks = computed(() => props.data.works.length > 0)
+const hasSkills = computed(() => props.data.skills.length > 0)
+const hasContact = computed(() => {
+  const p = props.data.profile
+  return Boolean(p.email || p.location || p.availability || p.socials?.length)
+})
+
 onMounted(() => {
   if (!rootEl.value) return
   // 与导出 HTML 共用同一份引擎源码，保证预览与导出交互完全一致
@@ -56,7 +69,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- 关于 -->
-      <section class="pp-view" data-panel="about">
+      <section v-if="hasAbout" class="pp-view" data-panel="about">
         <h2 class="pp-view-h">关于我</h2>
         <p class="pp-view-text">{{ data.profile.bio }}</p>
         <ul class="pp-view-meta">
@@ -67,7 +80,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- 数据 -->
-      <section class="pp-view" data-panel="stats">
+      <section v-if="hasStats" class="pp-view" data-panel="stats">
         <h2 class="pp-view-h">数据轨迹</h2>
         <div class="pp-stat-grid">
           <div v-for="s in stats" :key="s.label" class="pp-statcard">
@@ -79,7 +92,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- 作品 -->
-      <section class="pp-view" data-panel="works">
+      <section v-if="hasWorks" class="pp-view" data-panel="works">
         <h2 class="pp-view-h">作品星系</h2>
         <ul class="pp-works">
           <li
@@ -90,7 +103,7 @@ onBeforeUnmount(() => {
             tabindex="0"
             :aria-label="w.title"
           >
-            <span class="pp-work-cover">
+            <span v-if="w.cover" class="pp-work-cover">
               <img :src="w.cover" :alt="w.title" loading="lazy" />
             </span>
             <span class="pp-work-info">
@@ -103,7 +116,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- 技能 -->
-      <section class="pp-view" data-panel="skills">
+      <section v-if="hasSkills" class="pp-view" data-panel="skills">
         <h2 class="pp-view-h">技能螺旋</h2>
         <div v-for="g in data.skills" :key="g.id" class="pp-skill-group">
           <span class="pp-skill-cat">{{ g.category }}<i>{{ g.categoryEn }}</i></span>
@@ -114,7 +127,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- 联系 -->
-      <section class="pp-view" data-panel="contact">
+      <section v-if="hasContact" class="pp-view" data-panel="contact">
         <h2 class="pp-view-h">联系漩涡</h2>
         <p class="pp-view-text">有想法？随时聊聊，通常 24 小时内回复。</p>
         <ul class="pp-view-meta">
@@ -141,11 +154,11 @@ onBeforeUnmount(() => {
 
     <nav class="pp-nav" aria-label="信息板块">
       <button type="button" data-nav="0">星球</button>
-      <button type="button" data-nav="1">关于</button>
-      <button type="button" data-nav="2">数据</button>
-      <button type="button" data-nav="3">作品</button>
-      <button type="button" data-nav="4">技能</button>
-      <button type="button" data-nav="5">联系</button>
+      <button v-if="hasAbout" type="button" data-nav="1">关于</button>
+      <button v-if="hasStats" type="button" data-nav="2">数据</button>
+      <button v-if="hasWorks" type="button" data-nav="3">作品</button>
+      <button v-if="hasSkills" type="button" data-nav="4">技能</button>
+      <button v-if="hasContact" type="button" data-nav="5">联系</button>
     </nav>
 
     <footer class="pp-footer">
@@ -159,7 +172,7 @@ onBeforeUnmount(() => {
         <button class="modal-close" aria-label="关闭" type="button">
           <X :size="20" :stroke-width="1.75" />
         </button>
-        <div class="pp-modal-cover">
+        <div v-if="w.cover" class="pp-modal-cover">
           <img :src="w.cover" :alt="w.title" loading="lazy" />
         </div>
         <div class="pp-modal-body">

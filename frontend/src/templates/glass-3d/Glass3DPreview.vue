@@ -22,6 +22,19 @@ const stats = computed(() => props.data.profile.stats)
 const featured = computed(() => props.data.works.find((w) => w.highlight) ?? props.data.works[0])
 const rest = computed(() => props.data.works.filter((w) => w.id !== featured.value?.id))
 
+// 区块渲染开关：对应数据为空时不渲染区块与导航入口（导出 HTML 同步生效）
+const hasWorks = computed(() => props.data.works.length > 0)
+const hasSkills = computed(() => props.data.skills.length > 0)
+const hasTimeline = computed(() => props.data.experiences.length > 0)
+const hasAbout = computed(() => {
+  const p = props.data.profile
+  return Boolean(p.bio || p.availability || p.location || p.stats?.length)
+})
+const hasContact = computed(() => {
+  const p = props.data.profile
+  return Boolean(p.email || p.location || p.availability || p.socials?.length)
+})
+
 /* —— 3D 交互（Vue 预览环境生效；导出 HTML 由 runtime.ts 还原同样逻辑）—— */
 const cleanups: Array<() => void> = []
 
@@ -235,13 +248,13 @@ onBeforeUnmount(() => {
         <span class="g3-brand-name">{{ data.profile.name }}</span>
       </a>
       <div class="g3-nav-links">
-        <a href="#works">作品</a>
-        <a href="#skills">技能</a>
-        <a href="#about">关于</a>
-        <a href="#timeline">历程</a>
-        <a href="#contact">联系</a>
+        <a v-if="hasWorks" href="#works">作品</a>
+        <a v-if="hasSkills" href="#skills">技能</a>
+        <a v-if="hasAbout" href="#about">关于</a>
+        <a v-if="hasTimeline" href="#timeline">历程</a>
+        <a v-if="hasContact" href="#contact">联系</a>
       </div>
-      <a class="g3-nav-cta" href="#contact">
+      <a v-if="hasContact" class="g3-nav-cta" href="#contact">
         <span>联系我</span>
         <ArrowUpRight :size="14" :stroke-width="2" />
       </a>
@@ -262,10 +275,10 @@ onBeforeUnmount(() => {
             </h1>
             <p class="g3-sub">{{ data.profile.tagline }}</p>
             <div class="g3-actions">
-              <a class="g3-btn g3-btn-primary" href="#works">
+              <a v-if="hasWorks" class="g3-btn g3-btn-primary" href="#works">
                 查看作品 <ArrowUpRight :size="16" :stroke-width="2" />
               </a>
-              <a class="g3-btn g3-btn-ghost" href="#contact">联系我</a>
+              <a v-if="hasContact" class="g3-btn g3-btn-ghost" href="#contact">联系我</a>
             </div>
             <div class="g3-stats">
               <div v-for="s in stats" :key="s.label" class="g3-stat">
@@ -311,7 +324,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- 作品 -->
-      <section id="works" class="g3-section">
+      <section v-if="hasWorks" id="works" class="g3-section">
         <header class="g3-sec-head reveal">
           <span class="g3-sec-eyebrow">精选作品</span>
           <h2 class="g3-sec-title">每一件作品<br />都值得被光点亮</h2>
@@ -329,7 +342,7 @@ onBeforeUnmount(() => {
               tabindex="0"
               :aria-label="featured.title"
             >
-              <div class="g3-work-cover g3-work-cover-featured">
+              <div v-if="featured.cover" class="g3-work-cover g3-work-cover-featured">
                 <img :src="featured.cover" :alt="featured.title" loading="lazy" />
                 <span class="g3-work-cat">{{ featured.category }}</span>
                 <span class="g3-work-year">{{ featured.year }}</span>
@@ -363,7 +376,7 @@ onBeforeUnmount(() => {
               tabindex="0"
               :aria-label="w.title"
             >
-              <div class="g3-work-cover">
+              <div v-if="w.cover" class="g3-work-cover">
                 <img :src="w.cover" :alt="w.title" loading="lazy" />
                 <span class="g3-work-cat">{{ w.category }}</span>
                 <span class="g3-work-year">{{ w.year }}</span>
@@ -385,7 +398,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- 技能 -->
-      <section id="skills" class="g3-section g3-section-tint">
+      <section v-if="hasSkills" id="skills" class="g3-section g3-section-tint">
         <header class="g3-sec-head reveal">
           <span class="g3-sec-eyebrow">能力矩阵</span>
           <h2 class="g3-sec-title">覆盖全链路的技术版图</h2>
@@ -411,7 +424,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- 关于我 -->
-      <section id="about" class="g3-section">
+      <section v-if="hasAbout" id="about" class="g3-section">
         <header class="g3-sec-head reveal">
           <span class="g3-sec-eyebrow">关于我</span>
           <h2 class="g3-sec-title">一个把细节当作品的人</h2>
@@ -442,7 +455,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- 历程 -->
-      <section id="timeline" class="g3-section g3-section-tint">
+      <section v-if="hasTimeline" id="timeline" class="g3-section g3-section-tint">
         <header class="g3-sec-head reveal">
           <span class="g3-sec-eyebrow">成长轨迹</span>
           <h2 class="g3-sec-title">每一步<br />都留下光的印记</h2>
@@ -467,7 +480,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- 联系 -->
-      <section id="contact" class="g3-section">
+      <section v-if="hasContact" id="contact" class="g3-section">
         <div class="g3-card g3-contact reveal">
           <div class="g3-contact-left">
             <span class="g3-sec-eyebrow">联系方式</span>
@@ -529,7 +542,7 @@ onBeforeUnmount(() => {
         <button class="modal-close" aria-label="关闭" type="button">
           <X :size="20" :stroke-width="1.75" />
         </button>
-        <div class="g3-modal-cover">
+        <div v-if="w.cover" class="g3-modal-cover">
           <img :src="w.cover" :alt="w.title" loading="lazy" />
           <span class="g3-modal-year">{{ w.year }}</span>
         </div>

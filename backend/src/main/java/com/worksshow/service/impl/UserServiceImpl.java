@@ -215,10 +215,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     /**
      * 用户登出
      * <p>
-     * 将当前 access token 加入黑名单,删除所有 refresh token。
+     * 将当前 access token 加入黑名单;携带 refreshToken 时仅删除该设备的 refresh token,
+     * 未携带时不删除(其他设备登录态不受影响)。
+     *
+     * @param refreshToken 当前设备的 refresh token(可选,为空时仅黑名单 access token)
      */
     @Override
-    public void logout() {
+    public void logout(String refreshToken) {
         Long userId = UserContext.getCurrentUserId();
         if (userId == null) {
             return;
@@ -230,8 +233,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             tokenBlacklistService.blacklist(token, accessTokenTimeoutSeconds);
         }
 
-        // 删除所有 refresh token(滚动刷新链路一并切断)
-        refreshTokenService.deleteByUserId(userId);
+        // 仅删除当前设备的 refresh token(其他设备登录态保持)
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            refreshTokenService.deleteByToken(refreshToken);
+        }
 
         log.info("用户登出成功: userId={}", userId);
     }

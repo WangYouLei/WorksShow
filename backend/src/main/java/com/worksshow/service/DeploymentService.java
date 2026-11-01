@@ -43,4 +43,22 @@ public interface DeploymentService extends IService<Deployment> {
      * @return 部署详情
      */
     DeploymentVO getDetail(Long id);
+
+    /**
+     * 下线 EdgeOne 部署站点(伪删除)。
+     * <p>
+     * EdgeOne CLI 无删除项目能力,通过向同一项目部署"站点已下线"
+     * 提示页覆盖原内容实现内容下线,并生成一条新的部署记录。
+     *
+     * @param id 原部署记录ID(须为成功的 EdgeOne 部署)
+     * @return 下线部署产生的记录
+     */
+    DeploymentVO offline(Long id);
+
+    /**
+     * 删除部署记录(仅删除本地记录,不影响线上站点)。
+     *
+     * @param id 部署记录ID
+     */
+    void deleteMine(Long id);
 }

@@ -32,6 +32,19 @@ const mastheadDate = computed(() => {
   const weekdays = ['日', '一', '二', '三', '四', '五', '六']
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 · 星期${weekdays[d.getDay()]}`
 })
+
+// 区块渲染开关：对应数据为空时不渲染区块与导航入口（导出 HTML 同步生效）
+const hasWorks = computed(() => props.data.works.length > 0)
+const hasSkills = computed(() => props.data.skills.length > 0)
+const hasTimeline = computed(() => props.data.experiences.length > 0)
+const hasAbout = computed(() => {
+  const p = props.data.profile
+  return Boolean(p.bio || p.availability || p.location || p.stats?.length)
+})
+const hasContact = computed(() => {
+  const p = props.data.profile
+  return Boolean(p.email || p.location || p.availability || p.socials?.length)
+})
 </script>
 
 <template>
@@ -55,13 +68,13 @@ const mastheadDate = computed(() => {
         <span class="brand-name">{{ data.profile.name }}</span>
       </a>
       <div class="nav-links">
-        <a href="#works">作品</a>
-        <a href="#skills">技术</a>
-        <a href="#about">关于</a>
-        <a href="#timeline">历程</a>
-        <a href="#contact">联系</a>
+        <a v-if="hasWorks" href="#works">作品</a>
+        <a v-if="hasSkills" href="#skills">技术</a>
+        <a v-if="hasAbout" href="#about">关于</a>
+        <a v-if="hasTimeline" href="#timeline">历程</a>
+        <a v-if="hasContact" href="#contact">联系</a>
       </div>
-      <a class="nav-cta" href="#contact">联系我 <ArrowUpRight :size="14" :stroke-width="2" /></a>
+      <a v-if="hasContact" class="nav-cta" href="#contact">联系我 <ArrowUpRight :size="14" :stroke-width="2" /></a>
     </nav>
 
     <main id="top">
@@ -79,8 +92,8 @@ const mastheadDate = computed(() => {
               <p class="hero-bio">{{ data.profile.bio }}</p>
             </div>
             <div class="hero-actions">
-              <a class="btn btn-primary" href="#works">阅读作品 <ArrowUpRight :size="15" :stroke-width="2" /></a>
-              <a class="btn btn-ghost" href="#contact">联系作者</a>
+              <a v-if="hasWorks" class="btn btn-primary" href="#works">阅读作品 <ArrowUpRight :size="15" :stroke-width="2" /></a>
+              <a v-if="hasContact" class="btn btn-ghost" href="#contact">联系作者</a>
             </div>
             <div class="hero-stats">
               <div v-for="s in stats" :key="s.label" class="stat">
@@ -99,7 +112,7 @@ const mastheadDate = computed(() => {
               tabindex="0"
               :aria-label="featured.title"
             >
-              <div class="feature-cover">
+              <div v-if="featured.cover" class="feature-cover">
                 <img :src="featured.cover" :alt="featured.title" loading="lazy" />
               </div>
               <div class="feature-body">
@@ -117,7 +130,7 @@ const mastheadDate = computed(() => {
       </section>
 
       <!-- 作品矩阵（多栏报纸式排版） -->
-      <section id="works" class="g-section">
+      <section v-if="hasWorks" id="works" class="g-section">
         <header class="sec-head reveal">
           <span class="sec-eyebrow">栏目壹 · SECTION 01</span>
           <h2 class="sec-title">产品矩阵</h2>
@@ -134,7 +147,7 @@ const mastheadDate = computed(() => {
             tabindex="0"
             :aria-label="w.title"
           >
-            <div class="work-cover">
+            <div v-if="w.cover" class="work-cover">
               <img :src="w.cover" :alt="w.title" loading="lazy" />
               <span class="work-year">{{ w.year }}</span>
             </div>
@@ -151,7 +164,7 @@ const mastheadDate = computed(() => {
       </section>
 
       <!-- 技术栈（多栏报纸式排版） -->
-      <section id="skills" class="g-section g-section-soft">
+      <section v-if="hasSkills" id="skills" class="g-section g-section-soft">
         <header class="sec-head reveal">
           <span class="sec-eyebrow">栏目贰 · SECTION 02</span>
           <h2 class="sec-title">工具与技术</h2>
@@ -172,7 +185,7 @@ const mastheadDate = computed(() => {
       </section>
 
       <!-- 关于我（首字下沉正文,报纸专栏式） -->
-      <section id="about" class="g-section">
+      <section v-if="hasAbout" id="about" class="g-section">
         <header class="sec-head reveal">
           <span class="sec-eyebrow">栏目叁 · SECTION 03</span>
           <h2 class="sec-title">作者自述</h2>
@@ -194,7 +207,7 @@ const mastheadDate = computed(() => {
       </section>
 
       <!-- 创作历程（报纸式编年史） -->
-      <section id="timeline" class="g-section g-section-soft">
+      <section v-if="hasTimeline" id="timeline" class="g-section g-section-soft">
         <header class="sec-head reveal">
           <span class="sec-eyebrow">栏目肆 · SECTION 04</span>
           <h2 class="sec-title">编年史</h2>
@@ -215,7 +228,7 @@ const mastheadDate = computed(() => {
       </section>
 
       <!-- 联系方式（报社启事式） -->
-      <section id="contact" class="g-section">
+      <section v-if="hasContact" id="contact" class="g-section">
         <div class="contact-card reveal">
           <div class="contact-left">
             <span class="sec-eyebrow">栏目伍 · SECTION 05</span>
@@ -281,7 +294,7 @@ const mastheadDate = computed(() => {
       <div class="modal-overlay"></div>
       <article class="modal-card">
         <button class="modal-close" aria-label="关闭"><X :size="20" :stroke-width="1.75" /></button>
-        <div class="modal-cover">
+        <div v-if="w.cover" class="modal-cover">
           <img :src="w.cover" :alt="w.title" loading="lazy" />
           <span class="modal-year">{{ w.year }}</span>
         </div>

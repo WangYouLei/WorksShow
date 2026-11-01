@@ -73,9 +73,11 @@ public interface UserService extends IService<User> {
     /**
      * 用户登出
      * <p>
-     * 将当前 access token 加入黑名单,删除所有 refresh token。
+     * 将当前 access token 加入黑名单;携带 refreshToken 时仅删除该设备的 refresh token。
+     *
+     * @param refreshToken 当前设备的 refresh token(可选,为空时仅黑名单 access token)
      */
-    void logout();
+    void logout(String refreshToken);
 
     /**
      * 使用 refresh token 刷新获取新的 access token

@@ -23,9 +23,9 @@ public class EdgeOneConfigRequestDTO {
     private String apiToken;
 
     /** EdgeOne Pages 项目名(CLI -n参数用,可选,部署时的默认项目名)。
-     *  仅允许字母开头+字母/数字/下划线/连字符,防止以 - 开头被 CLI 解析为其他选项(参数注入) */
-    @Pattern(regexp = "^[a-zA-Z0-9][a-zA-Z0-9-_]{0,99}$",
-            message = "项目名须以字母或数字开头,仅可包含字母/数字/下划线/连字符")
+     *  EdgeOne 仅接受小写字母/数字/连字符,且不能以 - 开头(防参数注入) */
+    @Pattern(regexp = "^[a-z0-9][a-z0-9-]{0,99}$",
+            message = "项目名仅可包含小写字母/数字/连字符,且以小写字母或数字开头")
     @Size(max = 100, message = "项目名长度不能超过100")
     private String projectName;
 }

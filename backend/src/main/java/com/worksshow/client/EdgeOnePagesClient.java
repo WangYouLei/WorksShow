@@ -28,7 +28,7 @@ import java.util.stream.Stream;
  * <ol>
  *   <li>创建临时目录,将 HTML 写入 index.html</li>
  *   <li>执行 edgeone pages deploy &lt;dir&gt; -t &lt;token&gt; -n &lt;projectName&gt;</li>
- *   <li>解析 stdout 提取 EDGEONE_DEPLOY_URL 和 EDGEONE_PROJECT_ID</li>
+ *   <li>解析 stdout 提取部署 URL 和项目 ID(兼容新旧 CLI 输出格式)</li>
  *   <li>清理临时目录</li>
  * </ol>
  *
@@ -42,21 +42,22 @@ public class EdgeOnePagesClient {
     private static final String CLI_BIN = System.getProperty("os.name", "").toLowerCase().contains("win")
             ? "edgeone.cmd" : "edgeone";
 
-    /** 部署成功输出中匹配 DEPLOY_URL 的正则 */
+    /** 部署成功输出中匹配部署 URL 的正则(新版 CLI 格式)。
+     *  令牌部署输出 "Deploy URL: xxx";匿名部署输出 "Access URL: xxx" */
     private static final Pattern DEPLOY_URL_PATTERN =
-            Pattern.compile("EDGEONE_DEPLOY_URL=(\\S+)");
+            Pattern.compile("(?:Deploy URL:\\s*|Access URL:\\s*)(\\S+)");
 
-    /** 部署成功输出中匹配 PROJECT_ID 的正则 */
+    /** 部署成功输出中匹配项目 ID 的正则(新版 CLI 格式 "Project ID: xxx") */
     private static final Pattern PROJECT_ID_PATTERN =
-            Pattern.compile("EDGEONE_PROJECT_ID=(\\S+)");
+            Pattern.compile("Project ID:\\s*(\\S+)");
 
     /** CLI 输出累积上限(字符),防止异常 CLI 无限输出撑爆内存 */
     private static final int MAX_OUTPUT_LENGTH = 64 * 1024;
 
-    /** 项目名合法格式:字母/数字开头,仅字母/数字/下划线/连字符。
+    /** 项目名合法格式:小写字母/数字开头,仅小写字母/数字/连字符(EdgeOne API 命名规则)。
      *  兜底校验:防止历史数据或绕过 DTO 校验的值以 "-" 开头被 CLI 解析为其他选项(参数注入) */
     private static final Pattern PROJECT_NAME_PATTERN =
-            Pattern.compile("^[a-zA-Z0-9][a-zA-Z0-9-_]{0,99}$");
+            Pattern.compile("^[a-z0-9][a-z0-9-]{0,99}$");
 
     /** 部署超时(秒),CLI 构建上传可能耗时 */
     @Value("${edgeone.deploy-timeout-seconds:180}")
@@ -74,7 +75,7 @@ public class EdgeOnePagesClient {
         // 项目名兜底校验(防参数注入),历史配置数据可能未经过 DTO 校验
         if (projectName == null || !PROJECT_NAME_PATTERN.matcher(projectName).matches()) {
             return new EdgeOneDeployResult(false, null, null,
-                    "项目名不合法:须以字母或数字开头,仅可包含字母/数字/下划线/连字符");
+                    "项目名不合法:仅可包含小写字母/数字/连字符,且以小写字母或数字开头");
         }
         Path tempDir = null;
         try {
@@ -136,7 +137,8 @@ public class EdgeOnePagesClient {
             outputReader.join(5000);
 
             int exitCode = process.exitValue();
-            String stdout = output.toString();
+            // CLI 在部分环境下输出含 ANSI 颜色/加粗码,统一剥离,避免干扰解析与错误信息入库
+            String stdout = output.toString().replaceAll("\u001B\\[[0-9;]*[A-Za-z]", "");
             // 过滤可能包含 API Token 的行(CLI 失败时可能回显命令行,含 -t <token>)
             String safeLog = sanitizeLog(stdout);
             log.info("EdgeOne CLI 输出(exitCode={}):\n{}", exitCode, safeLog);

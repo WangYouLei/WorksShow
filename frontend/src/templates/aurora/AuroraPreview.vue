@@ -21,6 +21,19 @@ const featured = computed(() => props.data.works.find((w) => w.highlight) ?? pro
 const rest = computed(() => props.data.works.filter((w) => w.id !== featured.value?.id))
 const stats = computed(() => props.data.profile.stats)
 const initials = computed(() => props.data.profile.name.slice(0, 1))
+
+// 区块渲染开关：对应数据为空时不渲染区块与导航入口（导出 HTML 同步生效）
+const hasWorks = computed(() => props.data.works.length > 0)
+const hasSkills = computed(() => props.data.skills.length > 0)
+const hasTimeline = computed(() => props.data.experiences.length > 0)
+const hasAbout = computed(() => {
+  const p = props.data.profile
+  return Boolean(p.bio || p.availability || p.location || p.stats?.length)
+})
+const hasContact = computed(() => {
+  const p = props.data.profile
+  return Boolean(p.email || p.location || p.availability || p.socials?.length)
+})
 </script>
 
 <template>
@@ -41,13 +54,13 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
         <span class="brand-name">{{ data.profile.name }}</span>
       </a>
       <div class="nav-links">
-        <a href="#works">项目作品</a>
-        <a href="#skills">技术栈</a>
-        <a href="#about">关于我</a>
-        <a href="#timeline">项目历程</a>
-        <a href="#contact">联系方式</a>
+        <a v-if="hasWorks" href="#works">项目作品</a>
+        <a v-if="hasSkills" href="#skills">技术栈</a>
+        <a v-if="hasAbout" href="#about">关于我</a>
+        <a v-if="hasTimeline" href="#timeline">项目历程</a>
+        <a v-if="hasContact" href="#contact">联系方式</a>
       </div>
-      <a class="nav-cta" href="#contact">
+      <a v-if="hasContact" class="nav-cta" href="#contact">
         <span>联系我</span>
         <ArrowUpRight :size="14" :stroke-width="2" />
       </a>
@@ -68,10 +81,10 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
             </h1>
             <p class="hero-sub">{{ data.profile.tagline }}</p>
             <div class="hero-actions">
-              <a class="btn btn-primary" href="#works">
+              <a v-if="hasWorks" class="btn btn-primary" href="#works">
                 查看作品 <ArrowUpRight :size="16" :stroke-width="2" />
               </a>
-              <a class="btn btn-ghost" href="#contact">联系我</a>
+              <a v-if="hasContact" class="btn btn-ghost" href="#contact">联系我</a>
             </div>
             <div class="hero-stats">
               <div v-for="s in stats" :key="s.label" class="stat">
@@ -108,7 +121,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
       </section>
 
       <!-- 项目展示 Bento Grid -->
-      <section id="works" class="a-section">
+      <section v-if="hasWorks" id="works" class="a-section">
         <header class="sec-head reveal">
           <span class="sec-eyebrow">项目作品</span>
           <h2 class="sec-title">把每一个想法<br />打磨成可被使用的产品</h2>
@@ -125,7 +138,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
             tabindex="0"
             :aria-label="featured.title"
           >
-            <div class="featured-cover">
+            <div v-if="featured.cover" class="featured-cover">
               <img :src="featured.cover" :alt="featured.title" loading="lazy" />
               <div class="featured-cover-veil"></div>
               <span class="featured-badge">旗舰作品</span>
@@ -156,7 +169,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
             tabindex="0"
             :aria-label="w.title"
           >
-            <div class="small-cover">
+            <div v-if="w.cover" class="small-cover">
               <img :src="w.cover" :alt="w.title" loading="lazy" />
               <div class="small-cover-veil"></div>
               <span class="small-year">{{ w.year }}</span>
@@ -174,7 +187,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
       </section>
 
       <!-- 技术栈 -->
-      <section id="skills" class="a-section a-section-glass">
+      <section v-if="hasSkills" id="skills" class="a-section a-section-glass">
         <header class="sec-head reveal">
           <span class="sec-eyebrow">技术栈</span>
           <h2 class="sec-title">从想法到上线<br />全链路独立交付能力</h2>
@@ -195,7 +208,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
       </section>
 
       <!-- 关于我 -->
-      <section id="about" class="a-section">
+      <section v-if="hasAbout" id="about" class="a-section">
         <header class="sec-head reveal">
           <span class="sec-eyebrow">关于我</span>
           <h2 class="sec-title">一个持续创造产品的人</h2>
@@ -221,7 +234,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
       </section>
 
       <!-- 项目历程 -->
-      <section id="timeline" class="a-section a-section-glass">
+      <section v-if="hasTimeline" id="timeline" class="a-section a-section-glass">
         <header class="sec-head reveal">
           <span class="sec-eyebrow">项目历程</span>
           <h2 class="sec-title">每个里程碑<br />都是一次产品突破</h2>
@@ -247,7 +260,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
       </section>
 
       <!-- 联系方式 -->
-      <section id="contact" class="a-section">
+      <section v-if="hasContact" id="contact" class="a-section">
         <div class="contact-card reveal">
           <div class="contact-glow"></div>
           <div class="contact-left">
@@ -315,7 +328,7 @@ const initials = computed(() => props.data.profile.name.slice(0, 1))
         <button class="modal-close" aria-label="关闭" type="button">
           <X :size="20" :stroke-width="1.75" />
         </button>
-        <div class="modal-cover">
+        <div v-if="w.cover" class="modal-cover">
           <img :src="w.cover" :alt="w.title" loading="lazy" />
           <span class="modal-year">{{ w.year }}</span>
         </div>

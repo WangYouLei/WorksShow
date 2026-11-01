@@ -10,7 +10,7 @@ const experiences = portfolio?.experiences ?? defaultExperiences
 </script>
 
 <template>
-  <section id="skills" class="section skills">
+  <section v-if="skills.length || experiences.length" id="skills" class="section skills">
     <div class="container">
       <div class="skills-head">
         <span class="section-label reveal">技能与经历 · Skills</span>
@@ -21,7 +21,7 @@ const experiences = portfolio?.experiences ?? defaultExperiences
 
       <div class="skills-grid">
         <!-- 左：技能标签云 -->
-        <div class="skills-cloud reveal">
+        <div v-if="skills.length" class="skills-cloud reveal">
           <h3 class="block-title font-serif">技能矩阵</h3>
           <div class="cloud-groups">
             <div v-for="skill in skills" :key="skill.id" class="cloud-group">
@@ -39,7 +39,7 @@ const experiences = portfolio?.experiences ?? defaultExperiences
         </div>
 
         <!-- 右：时间轴 -->
-        <div class="skills-timeline reveal reveal-delay-1">
+        <div v-if="experiences.length" class="skills-timeline reveal reveal-delay-1">
           <h3 class="block-title font-serif">职业历程</h3>
           <ol class="timeline">
             <li

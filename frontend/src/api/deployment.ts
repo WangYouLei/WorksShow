@@ -55,3 +55,18 @@ export function listDeployments() {
 export function getDeployment(id: number) {
   return request.get<DeploymentVO>(`/deployment/${id}`) as unknown as Promise<DeploymentVO>
 }
+
+/**
+ * 下线 EdgeOne 站点(伪删除):部署"站点已下线"提示页覆盖原内容,
+ * 项目与 URL 不变。同步执行,耗时与部署相当。
+ */
+export function offlineDeployment(id: number) {
+  return request.post<DeploymentVO>(`/deployment/${id}/offline`, {}, {
+    timeout: 200000,
+  }) as unknown as Promise<DeploymentVO>
+}
+
+/** 删除部署记录(仅删除本地记录,EdgeOne 线上站点不受影响) */
+export function deleteDeployment(id: number) {
+  return request.delete<void>(`/deployment/${id}`) as unknown as Promise<void>
+}

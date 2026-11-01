@@ -30,6 +30,11 @@
 .ef-select:focus {
   border-color: #d4a574;
 }
+/* 原生 select 展开的 option 弹层不继承半透明背景,默认白底会与浅色字体冲突,需显式指定深底浅字 */
+.ef-select option {
+  background: #1a1a2e;
+  color: #f5f1e8;
+}
 .ef-textarea {
   resize: vertical;
   min-height: 80px;

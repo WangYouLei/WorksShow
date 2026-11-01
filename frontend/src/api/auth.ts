@@ -107,7 +107,9 @@ export function hasAuth(): boolean {
   return !!(localStorage.getItem('works-show:token') || localStorage.getItem('works-show:refreshToken'))
 }
 
-/** 退出登录(服务端将当前 token 加入黑名单并删除 refresh token,前端同时清除本地登录态) */
+/** 退出登录(服务端黑名单当前 access token 并删除本设备 refresh token,其他设备登录态不受影响) */
 export function logout() {
-  return request.post<void>('/user/logout') as unknown as Promise<void>
+  return request.post<void>('/user/logout', {
+    refreshToken: localStorage.getItem('works-show:refreshToken')
+  }) as unknown as Promise<void>
 }

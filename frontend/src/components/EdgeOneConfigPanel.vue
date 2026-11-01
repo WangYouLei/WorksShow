@@ -43,7 +43,8 @@ const onSave = async () => {
     await saveEdgeOneConfig({
       // apiToken 留空时传 undefined,后端仅更新 projectName
       apiToken: form.apiToken.trim() || undefined,
-      projectName: form.projectName.trim() || undefined,
+      // EdgeOne 项目名仅接受小写字母/数字/连字符,统一转小写
+      projectName: form.projectName.trim().toLowerCase() || undefined,
     })
     form.apiToken = ''
     success.value = '保存成功'
@@ -85,17 +86,37 @@ onMounted(loadConfig)
       <button type="button" class="delete-btn" :disabled="loading" @click="onDelete">删除配置</button>
     </div>
     <div v-else class="config-status">
-      <p class="status-line hint">尚未配置,请填写下方信息。API Token 可在 EdgeOne 控制台「API Token」页创建。</p>
+      <p class="status-line hint">尚未配置,请按下方指引获取并填写 API Token。</p>
+    </div>
+
+    <!-- API Token 获取指引 -->
+    <div class="token-guide">
+      <div class="guide-header">
+        <span class="guide-title">如何获取 API Token?</span>
+        <a
+          class="guide-link"
+          href="https://console.cloud.tencent.com/edgeone/makers?tab=settings"
+          target="_blank"
+          rel="noopener"
+        >前往 EdgeOne 控制台获取 →</a>
+      </div>
+      <ol class="guide-steps">
+        <li>点击右侧按钮进入 EdgeOne 控制台「设置」页(需先登录腾讯云账号)。</li>
+        <li>找到「API Token」区域,点击「创建 API Token」。</li>
+        <li>填写 Token 描述,选择过期时间(建议 90 天以上),点击提交。</li>
+        <li><strong>Token 仅在创建后完整显示一次</strong>,请立即复制并粘贴到下方输入框保存。</li>
+      </ol>
+      <p class="guide-note">注意: 请勿使用「访问管理 → API 密钥管理」中的 SecretId/SecretKey,那不是部署所需的 Pages API Token。</p>
     </div>
 
     <form class="form" @submit.prevent="onSave">
       <label class="field">
-        <span class="field-label">API Token{{ config ? '(留空则不修改,填写则更新)' : '' }}</span>
-        <input v-model="form.apiToken" type="password" class="field-input" placeholder="请输入 EdgeOne Pages API Token" autocomplete="off" />
+        <span class="field-label">API Token{{ config ? '(留空则不修改,填写则更新)' : '' }}<i v-if="!config" class="required-mark">*</i></span>
+        <input v-model="form.apiToken" type="password" class="field-input" placeholder="请输入 EdgeOne Pages API Token" autocomplete="off" :required="!config" />
       </label>
       <label class="field">
         <span class="field-label">默认项目名(可选)</span>
-        <input v-model="form.projectName" type="text" class="field-input" placeholder="部署时的默认 EdgeOne 项目名" />
+        <input v-model="form.projectName" type="text" class="field-input" placeholder="默认项目名,如 my-resume(小写字母/数字/连字符)" />
       </label>
 
       <p v-if="error" class="msg-error">{{ error }}</p>
@@ -161,6 +182,56 @@ onMounted(loadConfig)
   flex-direction: column;
   gap: 18px;
 }
+.token-guide {
+  padding: 12px 14px;
+  background: rgba(212, 165, 116, 0.06);
+  border: 1px dashed rgba(212, 165, 116, 0.35);
+  border-radius: 6px;
+}
+.guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.guide-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #d4a574;
+}
+.guide-link {
+  padding: 5px 10px;
+  font-size: 12px;
+  color: #0a0a0f;
+  background: #d4a574;
+  border-radius: 4px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.guide-link:hover {
+  background: #e3b885;
+}
+.guide-steps {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.guide-steps li {
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(245, 241, 232, 0.7);
+}
+.guide-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(224, 120, 86, 0.9);
+}
 .field {
   display: flex;
   flex-direction: column;
@@ -169,6 +240,11 @@ onMounted(loadConfig)
 .field-label {
   font-size: 13px;
   color: rgba(245, 241, 232, 0.7);
+}
+.required-mark {
+  margin-left: 2px;
+  font-style: normal;
+  color: #e07856;
 }
 .field-input {
   padding: 10px 12px;

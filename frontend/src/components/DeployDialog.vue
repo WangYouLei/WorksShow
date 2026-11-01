@@ -97,11 +97,15 @@ const onDeploy = async () => {
   try {
     const html = await exporter(usePortfolioStore(props.templateId), useThemeStore(props.templateId).value)
     // 4. 调用部署 API(同步,后端执行 EdgeOne CLI / 本地落盘)
+    // EdgeOne 项目名仅接受小写字母/数字/连字符,统一转小写;本服务器部署为备注名,保持原样
+    const projectName = form.projectName.trim()
     const res = await deploy({
       portfolioId,
       html,
       deployType: deployType.value,
-      projectName: form.projectName.trim() || undefined,
+      projectName: projectName
+        ? (deployType.value === 'edgeone' ? projectName.toLowerCase() : projectName)
+        : undefined,
       description: form.description.trim() || undefined,
     })
     result.value = res
@@ -241,7 +245,7 @@ watch(
                 v-model="form.projectName"
                 type="text"
                 class="field-input"
-                :placeholder="deployType === 'local' ? '如:我的求职简历' : 'EdgeOne Pages 项目名'"
+                :placeholder="deployType === 'local' ? '如:我的求职简历' : '如:my-resume(小写字母/数字/连字符)'"
               />
             </label>
             <label class="field">

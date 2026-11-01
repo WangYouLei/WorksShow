@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Menu, X } from 'lucide-vue-next'
 import { usePortfolio } from '@/composables/usePortfolio'
 import { profile as defaultProfile } from '@/data/profile'
@@ -10,12 +10,23 @@ const profile = portfolio?.profile ?? defaultProfile
 const scrolled = ref(false)
 const menuOpen = ref(false)
 
-const navItems = [
-  { label: '首页', href: '#home' },
-  { label: '关于', href: '#about' },
-  { label: '作品', href: '#works' },
-  { label: '经历', href: '#skills' },
-]
+// 区块渲染开关：对应数据为空时不渲染导航入口（导出 HTML 同步生效）
+const hasAbout = Boolean(
+  profile.bio || profile.availability || profile.location || profile.stats?.length,
+)
+const hasWorks = Boolean(portfolio?.works?.length)
+const hasSkills = Boolean(portfolio?.skills?.length || portfolio?.experiences?.length)
+const hasContact = Boolean(
+  profile.email || profile.location || profile.availability || profile.socials?.length,
+)
+
+const navItems = computed(() => {
+  const items: Array<{ label: string; href: string }> = [{ label: '首页', href: '#home' }]
+  if (hasAbout) items.push({ label: '关于', href: '#about' })
+  if (hasWorks) items.push({ label: '作品', href: '#works' })
+  if (hasSkills) items.push({ label: '经历', href: '#skills' })
+  return items
+})
 
 const onScroll = () => {
   scrolled.value = window.scrollY > 50
@@ -67,6 +78,7 @@ onUnmounted(() => {
           {{ item.label }}
         </a>
         <a
+          v-if="hasContact"
           href="#contact"
           class="nav-cta"
           @click="handleNavClick($event, '#contact')"

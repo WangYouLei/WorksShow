@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { getTemplatePreviewComponent, getTemplateDefaultData } from '@/templates/registry'
+import { usePreviewAnchors } from '@/composables/usePreviewAnchors'
 
 const props = defineProps<{ templateId: string }>()
 const data = computed(() => getTemplateDefaultData(props.templateId))
 const Comp = computed(() => getTemplatePreviewComponent(props.templateId))
+/** 拦截预览内 # 锚点点击改为页面内滚动，避免改动应用 hash 路由导致页面跳走 */
+usePreviewAnchors()
 </script>
 
 <template>

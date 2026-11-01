@@ -6,10 +6,15 @@ import { safeUrl } from '@/utils/safeUrl'
 
 const portfolio = usePortfolio()
 const profile = portfolio?.profile ?? defaultProfile
+
+// 区块渲染开关：联系信息全为空时不渲染区块（导出 HTML 同步生效）
+const hasContact = Boolean(
+  profile.email || profile.location || profile.availability || profile.socials?.length,
+)
 </script>
 
 <template>
-  <section id="contact" class="section contact">
+  <section v-if="hasContact" id="contact" class="section contact">
     <div class="container">
       <div class="contact-inner">
         <span class="section-label reveal">联系方式 · Contact</span>

@@ -40,7 +40,7 @@ onUnmounted(() => {
           <X :size="20" :stroke-width="1.5" />
         </button>
 
-        <div class="modal-cover">
+        <div v-if="work.cover" class="modal-cover">
           <img :src="work.cover" :alt="work.title" loading="lazy" />
           <span class="modal-year">{{ work.year }}</span>
         </div>

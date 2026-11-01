@@ -138,17 +138,27 @@ export const PP_ENGINE = `(function (root) {
   var FORMATIONS = { home: fSphere, about: fText, stats: fRings, works: fGalaxy, skills: fHelix, contact: fVortex };
 
   // —— 板块切换 ——
-  var sections = [];
-  var panels = root.querySelectorAll('[data-panel]');
-  for (i = 0; i < panels.length; i++) sections.push(panels[i].getAttribute('data-panel'));
-  var cur = sections.indexOf('home') >= 0 ? sections.indexOf('home') : 0;
+  // 面板与导航在数据为空时由 Vue 条件渲染增删,节点会被替换,
+  // 故每次切换时重新查询,与 navs 的处理方式保持一致。
+  function querySections() {
+    var els = root.querySelectorAll('[data-panel]');
+    var names = [];
+    for (var q = 0; q < els.length; q++) names.push(els[q].getAttribute('data-panel'));
+    return { els: els, names: names };
+  }
+  var cur = querySections().names.indexOf('home') >= 0 ? querySections().names.indexOf('home') : 0;
+  var curName = querySections().names[cur] || '';
   var raf = null;
   var running = true;
 
   function setSection(idx, rebuildText) {
+    var live = querySections();
+    var sections = live.names;
+    var panels = live.els;
     idx = ((idx % sections.length) + sections.length) % sections.length;
     cur = idx;
     var name = sections[idx];
+    curName = name;
     if (name === 'about' || rebuildText) textPts = buildText(root.getAttribute('data-name') || 'HELLO');
     var fn = FORMATIONS[name] || fSphere;
     for (var j = 0; j < N; j++) {
@@ -195,9 +205,9 @@ export const PP_ENGINE = `(function (root) {
       vry *= 0.95; vrx *= 0.95;
       if (Math.abs(vry) < 1e-5) vry = 0;
       if (Math.abs(vrx) < 1e-5) vrx = 0;
-      if (!vry && !vrx && sections[cur] !== 'about' && AUTO) ry += AUTO * Math.min(dt, 40) / 16.7;
+      if (!vry && !vrx && curName !== 'about' && AUTO) ry += AUTO * Math.min(dt, 40) / 16.7;
       // 姓名形态：静止后缓慢回正，保证文字可读
-      if (!vry && !vrx && sections[cur] === 'about' && !reduce) {
+      if (!vry && !vrx && curName === 'about' && !reduce) {
         var ryT = Math.round(ry / (Math.PI * 2)) * Math.PI * 2;
         ry += (ryT - ry) * 0.02;
         rx += (-0.14 - rx) * 0.02;
@@ -352,7 +362,7 @@ export const PP_ENGINE = `(function (root) {
   // 字体就绪后重绘姓名形态(避免首绘用了回退字体)
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(function () {
-      if (sections[cur] === 'about') setSection(cur, true);
+      if (querySections().names[cur] === 'about') setSection(cur, true);
     });
   }
 

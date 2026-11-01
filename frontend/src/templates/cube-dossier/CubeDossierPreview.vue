@@ -18,6 +18,19 @@ const skillsBrief = computed(() =>
 )
 const recentExp = computed(() => [...props.data.experiences].slice(-3).reverse())
 
+// 区块渲染开关：对应数据为空时不渲染导航按钮与详情面板（立方面因几何结构保留，点击不再展开）
+const hasAbout = computed(() => {
+  const p = props.data.profile
+  return Boolean(p.bio || p.availability || p.location)
+})
+const hasWorks = computed(() => props.data.works.length > 0)
+const hasSkills = computed(() => props.data.skills.length > 0)
+const hasTimeline = computed(() => props.data.experiences.length > 0)
+const hasContact = computed(() => {
+  const p = props.data.profile
+  return Boolean(p.email || p.location || p.availability || p.socials?.length)
+})
+
 onMounted(() => {
   if (!rootEl.value) return
   // 与导出 HTML 共用同一份引擎源码，保证预览与导出交互完全一致
@@ -132,11 +145,11 @@ onBeforeUnmount(() => {
       <!-- 底部导航 -->
       <nav class="cd-nav" aria-label="信息板块">
         <button type="button" data-nav="front"><i style="--acc: #7c6cf6"></i>封面</button>
-        <button type="button" data-nav="right"><i style="--acc: #ec5fa8"></i>关于</button>
-        <button type="button" data-nav="back"><i style="--acc: #4d8dff"></i>作品</button>
-        <button type="button" data-nav="left"><i style="--acc: #1fb6d4"></i>技能</button>
-        <button type="button" data-nav="top"><i style="--acc: #f5a623"></i>历程</button>
-        <button type="button" data-nav="bottom"><i style="--acc: #10b981"></i>联系</button>
+        <button v-if="hasAbout" type="button" data-nav="right"><i style="--acc: #ec5fa8"></i>关于</button>
+        <button v-if="hasWorks" type="button" data-nav="back"><i style="--acc: #4d8dff"></i>作品</button>
+        <button v-if="hasSkills" type="button" data-nav="left"><i style="--acc: #1fb6d4"></i>技能</button>
+        <button v-if="hasTimeline" type="button" data-nav="top"><i style="--acc: #f5a623"></i>历程</button>
+        <button v-if="hasContact" type="button" data-nav="bottom"><i style="--acc: #10b981"></i>联系</button>
       </nav>
     </main>
 
@@ -167,7 +180,7 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- 关于 -->
-      <div class="cd-view" data-panel="right">
+      <div v-if="hasAbout" class="cd-view" data-panel="right">
         <h3 class="cd-view-h">关于我</h3>
         <p class="cd-view-text">{{ data.profile.bio }}</p>
         <ul class="cd-view-meta">
@@ -177,7 +190,7 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- 作品 -->
-      <div class="cd-view" data-panel="back">
+      <div v-if="hasWorks" class="cd-view" data-panel="back">
         <h3 class="cd-view-h">项目作品</h3>
         <ul class="cd-works">
           <li
@@ -188,7 +201,7 @@ onBeforeUnmount(() => {
             tabindex="0"
             :aria-label="w.title"
           >
-            <span class="cd-work-cover">
+            <span v-if="w.cover" class="cd-work-cover">
               <img :src="w.cover" :alt="w.title" loading="lazy" />
             </span>
             <span class="cd-work-info">
@@ -204,7 +217,7 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- 技能 -->
-      <div class="cd-view" data-panel="left">
+      <div v-if="hasSkills" class="cd-view" data-panel="left">
         <h3 class="cd-view-h">技能矩阵</h3>
         <div v-for="g in data.skills" :key="g.id" class="cd-skill-group">
           <span class="cd-skill-cat">{{ g.category }}<i>{{ g.categoryEn }}</i></span>
@@ -215,7 +228,7 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- 历程 -->
-      <div class="cd-view" data-panel="top">
+      <div v-if="hasTimeline" class="cd-view" data-panel="top">
         <h3 class="cd-view-h">成长历程</h3>
         <ol class="cd-timeline">
           <li v-for="e in data.experiences" :key="e.id">
@@ -228,7 +241,7 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- 联系 -->
-      <div class="cd-view" data-panel="bottom">
+      <div v-if="hasContact" class="cd-view" data-panel="bottom">
         <h3 class="cd-view-h">联系方式</h3>
         <p class="cd-view-text">有想法？随时聊聊，通常 24 小时内回复。</p>
         <ul class="cd-view-meta">
@@ -261,7 +274,7 @@ onBeforeUnmount(() => {
         <button class="modal-close" aria-label="关闭" type="button">
           <X :size="20" :stroke-width="1.75" />
         </button>
-        <div class="cd-modal-cover">
+        <div v-if="w.cover" class="cd-modal-cover">
           <img :src="w.cover" :alt="w.title" loading="lazy" />
         </div>
         <div class="cd-modal-body">

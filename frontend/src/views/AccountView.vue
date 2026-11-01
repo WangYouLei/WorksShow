@@ -11,13 +11,14 @@ import {
 } from '@/api/auth'
 import type { UserInfo, UpdateProfileData, ChangePasswordData, ResetPasswordData } from '@/api/auth'
 import EdgeOneConfigPanel from '@/components/EdgeOneConfigPanel.vue'
+import DeploymentRecordsPanel from '@/components/DeploymentRecordsPanel.vue'
 import CareerIntentionPanel from '@/editor/panels/CareerIntentionPanel.vue'
 import ProfilePanel from '@/editor/panels/ProfilePanel.vue'
 import { destroyPortfolioStore } from '@/composables/usePortfolioStore'
 
 const router = useRouter()
 const route = useRoute()
-const activeTab = ref<'profile' | 'password' | 'portfolio' | 'career' | 'edgeone'>(
+const activeTab = ref<'profile' | 'password' | 'portfolio' | 'career' | 'deployments' | 'edgeone'>(
   route.query.tab === 'edgeone' ? 'edgeone' : 'profile',
 )
 const userInfo = ref<UserInfo | null>(null)
@@ -61,7 +62,7 @@ const loadUserInfo = async () => {
 
 const onUpdateProfile = async () => {
   if (!profileForm.nickname || profileForm.nickname.trim().length < 2) {
-    error.value = '昵称至少 2 个字符'
+    error.value = '昵称为必填项,长度需 2-20 个字符'
     return
   }
   loading.value = true
@@ -257,6 +258,12 @@ onUnmounted(() => {
           求职意向
         </button>
         <button
+          :class="['tab-btn', { active: activeTab === 'deployments' }]"
+          @click="switchTab('deployments')"
+        >
+          部署记录
+        </button>
+        <button
           :class="['tab-btn', { active: activeTab === 'edgeone' }]"
           @click="switchTab('edgeone')"
         >
@@ -268,8 +275,8 @@ onUnmounted(() => {
       <div v-if="activeTab === 'profile'" class="tab-content">
         <form class="form" @submit.prevent="onUpdateProfile">
           <label class="field">
-            <span class="field-label">昵称</span>
-            <input v-model="profileForm.nickname" type="text" class="field-input" placeholder="2-20 字符" />
+            <span class="field-label">昵称<i class="required-mark">*</i></span>
+            <input v-model="profileForm.nickname" type="text" class="field-input" placeholder="必填,2-20 字符" required />
           </label>
           <label class="field">
             <span class="field-label">性别</span>
@@ -368,6 +375,11 @@ onUnmounted(() => {
         <CareerIntentionPanel />
       </div>
 
+      <!-- 部署记录 -->
+      <div v-if="activeTab === 'deployments'" class="tab-content">
+        <DeploymentRecordsPanel />
+      </div>
+
       <!-- 部署配置 -->
       <div v-if="activeTab === 'edgeone'" class="tab-content">
         <EdgeOneConfigPanel />
@@ -464,6 +476,11 @@ onUnmounted(() => {
 .field-label {
   font-size: 13px;
   color: rgba(245, 241, 232, 0.7);
+}
+.required-mark {
+  margin-left: 2px;
+  font-style: normal;
+  color: #e07856;
 }
 .field-input {
   padding: 10px 12px;

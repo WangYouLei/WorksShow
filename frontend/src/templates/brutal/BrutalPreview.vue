@@ -19,6 +19,19 @@ const rest = computed(() => props.data.works.filter((w) => w.id !== featured.val
 const stats = computed(() => props.data.profile.stats)
 const initials = computed(() => props.data.profile.name.slice(0, 1))
 const year = computed(() => new Date().getFullYear())
+
+// 区块渲染开关：对应数据为空时不渲染区块与导航入口（导出 HTML 同步生效）
+const hasWorks = computed(() => props.data.works.length > 0)
+const hasSkills = computed(() => props.data.skills.length > 0)
+const hasTimeline = computed(() => props.data.experiences.length > 0)
+const hasAbout = computed(() => {
+  const p = props.data.profile
+  return Boolean(p.bio || p.availability || p.location || p.stats?.length)
+})
+const hasContact = computed(() => {
+  const p = props.data.profile
+  return Boolean(p.email || p.location || p.availability || p.socials?.length)
+})
 </script>
 
 <template>
@@ -30,13 +43,13 @@ const year = computed(() => new Date().getFullYear())
         <span class="brand-name">{{ data.profile.name }}</span>
       </a>
       <div class="nav-links">
-        <a href="#works">作品</a>
-        <a href="#skills">技术</a>
-        <a href="#about">关于</a>
-        <a href="#timeline">历程</a>
-        <a href="#contact">联系</a>
+        <a v-if="hasWorks" href="#works">作品</a>
+        <a v-if="hasSkills" href="#skills">技术</a>
+        <a v-if="hasAbout" href="#about">关于</a>
+        <a v-if="hasTimeline" href="#timeline">历程</a>
+        <a v-if="hasContact" href="#contact">联系</a>
       </div>
-      <a class="nav-cta" href="#contact">联系我 <ArrowUpRight :size="14" :stroke-width="2.5" /></a>
+      <a v-if="hasContact" class="nav-cta" href="#contact">联系我 <ArrowUpRight :size="14" :stroke-width="2.5" /></a>
     </nav>
 
     <main id="top">
@@ -56,8 +69,8 @@ const year = computed(() => new Date().getFullYear())
             <p class="hero-sub">{{ data.profile.tagline }}</p>
             <p class="hero-bio">{{ data.profile.bio }}</p>
             <div class="hero-actions">
-              <a class="btn btn-primary" href="#works">查看作品 <ArrowUpRight :size="16" :stroke-width="2.5" /></a>
-              <a class="btn btn-ghost" href="#contact">联系我</a>
+              <a v-if="hasWorks" class="btn btn-primary" href="#works">查看作品 <ArrowUpRight :size="16" :stroke-width="2.5" /></a>
+              <a v-if="hasContact" class="btn btn-ghost" href="#contact">联系我</a>
             </div>
           </div>
 
@@ -69,7 +82,7 @@ const year = computed(() => new Date().getFullYear())
               tabindex="0"
               :aria-label="featured.title"
             >
-              <div class="feature-cover">
+              <div v-if="featured.cover" class="feature-cover">
                 <img :src="featured.cover" :alt="featured.title" loading="lazy" />
                 <span class="feature-badge">旗舰作品</span>
               </div>
@@ -96,7 +109,7 @@ const year = computed(() => new Date().getFullYear())
       </section>
 
       <!-- 作品矩阵 -->
-      <section id="works" class="b-section">
+      <section v-if="hasWorks" id="works" class="b-section">
         <header class="sec-head reveal">
           <span class="sec-eyebrow">[ 01 / 作品 ]</span>
           <h2 class="sec-title">产品矩阵</h2>
@@ -113,7 +126,7 @@ const year = computed(() => new Date().getFullYear())
             tabindex="0"
             :aria-label="w.title"
           >
-            <div class="work-cover">
+            <div v-if="w.cover" class="work-cover">
               <img :src="w.cover" :alt="w.title" loading="lazy" />
               <span class="work-year">{{ w.year }}</span>
             </div>
@@ -130,7 +143,7 @@ const year = computed(() => new Date().getFullYear())
       </section>
 
       <!-- 技术栈 -->
-      <section id="skills" class="b-section b-section-mono">
+      <section v-if="hasSkills" id="skills" class="b-section b-section-mono">
         <header class="sec-head reveal">
           <span class="sec-eyebrow">[ 02 / 技术 ]</span>
           <h2 class="sec-title">工具与技术</h2>
@@ -151,7 +164,7 @@ const year = computed(() => new Date().getFullYear())
       </section>
 
       <!-- 关于我 -->
-      <section id="about" class="b-section">
+      <section v-if="hasAbout" id="about" class="b-section">
         <header class="sec-head reveal">
           <span class="sec-eyebrow">[ 03 / 关于 ]</span>
           <h2 class="sec-title">创造者自述</h2>
@@ -173,7 +186,7 @@ const year = computed(() => new Date().getFullYear())
       </section>
 
       <!-- 创作历程 -->
-      <section id="timeline" class="b-section b-section-mono">
+      <section v-if="hasTimeline" id="timeline" class="b-section b-section-mono">
         <header class="sec-head reveal">
           <span class="sec-eyebrow">[ 04 / 历程 ]</span>
           <h2 class="sec-title">里程碑</h2>
@@ -192,7 +205,7 @@ const year = computed(() => new Date().getFullYear())
       </section>
 
       <!-- 联系方式 -->
-      <section id="contact" class="b-section">
+      <section v-if="hasContact" id="contact" class="b-section">
         <div class="contact-card reveal">
           <div class="contact-left">
             <span class="sec-eyebrow">[ 05 / 联系 ]</span>
@@ -256,7 +269,7 @@ const year = computed(() => new Date().getFullYear())
       <div class="modal-overlay"></div>
       <article class="modal-card">
         <button class="modal-close" aria-label="关闭"><X :size="20" :stroke-width="2" /></button>
-        <div class="modal-cover">
+        <div v-if="w.cover" class="modal-cover">
           <img :src="w.cover" :alt="w.title" loading="lazy" />
           <span class="modal-year">{{ w.year }}</span>
         </div>

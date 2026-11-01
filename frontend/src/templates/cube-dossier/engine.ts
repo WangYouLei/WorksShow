@@ -73,14 +73,20 @@ export const CUBE_ENGINE = `(function (root) {
 
   function openPanel(face) {
     if (!FACE_ROT[face]) return;
+    // 对应数据为空时该面板未渲染：不展开，避免空白面板
+    var views = root.querySelectorAll('[data-panel]');
+    var hasView = false;
+    for (var i = 0; i < views.length; i++) {
+      if (views[i].getAttribute('data-panel') === face) hasView = true;
+    }
+    if (!hasView) return;
     openFace = face;
     vx = vy = 0;
     anim = { rx: FACE_ROT[face][0], ry: shortest(FACE_ROT[face][1], ry) };
     if (face === 'top' || face === 'bottom') anim.ry = shortest(0, ry);
     root.classList.add('is-open');
-    var views = root.querySelectorAll('[data-panel]');
-    for (var i = 0; i < views.length; i++) {
-      views[i].classList.toggle('is-active', views[i].getAttribute('data-panel') === face);
+    for (var j = 0; j < views.length; j++) {
+      views[j].classList.toggle('is-active', views[j].getAttribute('data-panel') === face);
     }
     setNav(face);
     var closeBtn = root.querySelector('.cd-close');

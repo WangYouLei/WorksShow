@@ -30,6 +30,7 @@ const form = reactive<CareerIntention>(defaultData())
 const loading = ref(true)
 const saving = ref(false)
 const lastSaved = ref('')
+const saveError = ref('')
 
 // 期望行业/城市用逗号分隔输入,内部仍以数组存储
 const industryText = ref('')
@@ -48,6 +49,9 @@ const workTypeOptions = [
   { value: 1, label: '兼职' },
   { value: 2, label: '实习' },
 ]
+
+// 到岗时间选项(与 DB arrival_time VARCHAR(50) 文本存储对齐)
+const arrivalTimeOptions = ['随时到岗', '一周内到岗', '一个月内到岗', '三个月内到岗', '面议']
 
 const syncIndustryToForm = () => {
   form.expectedIndustry = industryText.value
@@ -80,6 +84,12 @@ const load = async () => {
 
 const save = async () => {
   if (saving.value) return
+  // 期望职位为必填项,为空时不允许保存
+  if (!form.expectedPosition || !form.expectedPosition.trim()) {
+    saveError.value = '期望职位为必填项,请填写后再保存'
+    return
+  }
+  saveError.value = ''
   saving.value = true
   try {
     await saveCareerIntention(form)
@@ -92,6 +102,14 @@ const save = async () => {
 }
 
 onMounted(load)
+
+// 期望职位填写后立即清除必填提示(不等防抖保存)
+watch(
+  () => form.expectedPosition,
+  (v) => {
+    if (v && v.trim()) saveError.value = ''
+  },
+)
 
 // 深度监听,800ms 防抖保存(noSave 模式下跳过)
 let saveTimer: ReturnType<typeof setTimeout> | null = null
@@ -121,8 +139,8 @@ watch(
           </select>
         </label>
         <label class="ef-field">
-          <span>期望职位</span>
-          <input v-model="form.expectedPosition" class="ef-input" type="text" placeholder="如:前端工程师" />
+          <span>期望职位<i class="required-mark">*</i></span>
+          <input v-model="form.expectedPosition" class="ef-input" type="text" placeholder="必填,如:前端工程师" />
         </label>
         <label class="ef-field">
           <span>职位类型</span>
@@ -154,7 +172,10 @@ watch(
         </div>
         <label class="ef-field">
           <span>到岗时间</span>
-          <input v-model="form.arrivalTime" class="ef-input" type="date" />
+          <select v-model="form.arrivalTime" class="ef-select">
+            <option value="" disabled>请选择到岗时间</option>
+            <option v-for="opt in arrivalTimeOptions" :key="opt" :value="opt">{{ opt }}</option>
+          </select>
         </label>
       </div>
 
@@ -166,9 +187,11 @@ watch(
       </div>
 
       <div class="career-status">
-        <span v-if="saving" class="status-saving">保存中…</span>
+        <span v-if="saveError" class="status-error">{{ saveError }}</span>
+        <span v-else-if="saving" class="status-saving">保存中…</span>
         <span v-else-if="lastSaved" class="status-saved">已保存 · {{ lastSaved }}</span>
       </div>
+      <p class="required-hint"><i class="required-mark">*</i> 为必填项</p>
     </template>
   </div>
 </template>
@@ -186,5 +209,18 @@ watch(
 }
 .status-saving {
   color: rgba(245, 241, 232, 0.5);
+}
+.status-error {
+  color: #e07856;
+}
+.required-mark {
+  margin-left: 2px;
+  font-style: normal;
+  color: #e07856;
+}
+.required-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: rgba(245, 241, 232, 0.4);
 }
 </style>

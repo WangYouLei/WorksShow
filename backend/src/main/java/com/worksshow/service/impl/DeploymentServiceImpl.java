@@ -46,6 +46,25 @@ public class DeploymentServiceImpl extends ServiceImpl<DeploymentMapper, Deploym
     private final PortfolioService portfolioService;
     private final EdgeOnePagesClient edgeOnePagesClient;
 
+    /** 站点下线提示页(下线操作将其部署到原项目,覆盖原内容) */
+    private static final String OFFLINE_HTML = """
+            <!DOCTYPE html>
+            <html lang="zh-CN">
+            <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>站点已下线</title>
+            <style>
+              body { display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0;
+                     font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+                     background: #f5f5f5; color: #888; }
+              p { font-size: 18px; }
+            </style>
+            </head>
+            <body><p>该站点已下线</p></body>
+            </html>
+            """;
+
     /** 本地部署站点文件存储目录(相对路径基于服务运行目录) */
     @Value("${local-deploy.dir:./local-sites}")
     private String localDeployDir;
@@ -94,6 +113,9 @@ public class DeploymentServiceImpl extends ServiceImpl<DeploymentMapper, Deploym
             if (projectName == null || projectName.isBlank()) {
                 throw new BusinessException(400, "请填写EdgeOne项目名,或在配置中设置默认项目名");
             }
+            // 归一化:EdgeOne 项目名仅接受小写字母/数字/连字符,
+            // 历史配置或用户输入可能含大写(如 Wang1→wang1)
+            projectName = projectName.trim().toLowerCase(java.util.Locale.ROOT);
         }
 
         // 4. 先创建部署记录(状态=部署中),即使后续失败也有据可查
@@ -213,6 +235,67 @@ public class DeploymentServiceImpl extends ServiceImpl<DeploymentMapper, Deploym
         }
         checkOwnership(deployment);
         return toVO(deployment);
+    }
+
+    /**
+     * 下线 EdgeOne 部署站点:向原项目部署提示页覆盖内容,生成新部署记录
+     */
+    @Override
+    public DeploymentVO offline(Long id) {
+        Deployment source = getById(id);
+        if (source == null) {
+            throw new BusinessException(404, "部署记录不存在");
+        }
+        checkOwnership(source);
+        if (!Deployment.DEPLOY_TYPE_EDGEONE.equals(source.getDeployType())) {
+            throw new BusinessException(400, "仅 EdgeOne 部署支持下线");
+        }
+        if (source.getStatus() == null || source.getStatus() != Deployment.STATUS_SUCCESS
+                || source.getProjectName() == null || source.getProjectName().isBlank()) {
+            throw new BusinessException(400, "仅部署成功的记录支持下线");
+        }
+        String projectName = source.getProjectName().trim().toLowerCase(java.util.Locale.ROOT);
+        DecryptedEdgeOneConfig config = edgeoneConfigService.getDecryptedConfig();
+
+        // 先创建下线部署记录(保留历史追溯)
+        Deployment record = new Deployment();
+        record.setUserId(source.getUserId());
+        record.setPortfolioId(source.getPortfolioId());
+        record.setTemplateId(source.getTemplateId());
+        record.setProjectName(projectName);
+        record.setDeployType(Deployment.DEPLOY_TYPE_EDGEONE);
+        record.setDescription("站点下线(覆盖原内容)");
+        record.setStatus(Deployment.STATUS_DEPLOYING);
+        save(record);
+        log.info("创建下线部署记录: id={}, sourceId={}, projectName={}",
+                record.getId(), source.getId(), projectName);
+
+        EdgeOneDeployResult result = edgeOnePagesClient.deploy(
+                OFFLINE_HTML, config.apiToken(), projectName);
+        if (result.success()) {
+            record.setStatus(Deployment.STATUS_SUCCESS);
+            record.setDeployUrl(result.deployUrl());
+        } else {
+            record.setStatus(Deployment.STATUS_FAILED);
+            record.setErrorMessage(result.errorMessage());
+        }
+        updateById(record);
+        log.info("下线部署完成: id={}, success={}", record.getId(), result.success());
+        return toVO(record);
+    }
+
+    /**
+     * 删除部署记录(仅本地记录,线上站点不受影响)
+     */
+    @Override
+    public void deleteMine(Long id) {
+        Deployment deployment = getById(id);
+        if (deployment == null) {
+            throw new BusinessException(404, "部署记录不存在");
+        }
+        checkOwnership(deployment);
+        removeById(id);
+        log.info("删除部署记录: id={}", id);
     }
 
     // ==================== 私有辅助方法 ====================

@@ -5,10 +5,15 @@ import { profile as defaultProfile } from '@/data/profile'
 
 const portfolio = usePortfolio()
 const profile = portfolio?.profile ?? defaultProfile
+
+// 区块渲染开关：对应数据为空时不渲染区块与导航入口（导出 HTML 同步生效）
+const hasAbout = Boolean(
+  profile.bio || profile.availability || profile.location || profile.stats?.length,
+)
 </script>
 
 <template>
-  <section id="about" class="section about">
+  <section v-if="hasAbout" id="about" class="section about">
     <div class="container">
       <div class="about-grid">
         <!-- 左：名片 -->

@@ -86,8 +86,14 @@ export const VIRUS_ENGINE = `(function (root) {
   }
 
   // —— 档案阶段 ——
-  var sections = [], panels = root.querySelectorAll('[data-panel]');
-  for (var p0 = 0; p0 < panels.length; p0++) sections.push(panels[p0].getAttribute('data-panel'));
+  // 面板在数据为空时由 Vue 条件渲染增删,节点会被替换,
+  // 故切换时重新查询(与 navs/hds 的实时查询保持一致)。
+  function querySections() {
+    var els = root.querySelectorAll('[data-panel]');
+    var names = [];
+    for (var q0 = 0; q0 < els.length; q0++) names.push(els[q0].getAttribute('data-panel'));
+    return { els: els, names: names };
+  }
   var hots = root.querySelectorAll('[data-wv]');
   var cur = 0;
   var mode = '0';
@@ -475,6 +481,9 @@ export const VIRUS_ENGINE = `(function (root) {
 
   // —— 阶段切换 ——
   function setSection(idx) {
+    var live = querySections();
+    var sections = live.names;
+    var panels = live.els;
     if (!sections.length) return;
     idx = ((idx % sections.length) + sections.length) % sections.length;
     cur = idx;

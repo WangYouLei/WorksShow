@@ -4,6 +4,7 @@ import com.worksshow.common.Result;
 import com.worksshow.dto.ChangePasswordRequest;
 import com.worksshow.dto.LoginRequest;
 import com.worksshow.dto.LoginResponse;
+import com.worksshow.dto.LogoutRequest;
 import com.worksshow.dto.RefreshTokenRequest;
 import com.worksshow.dto.RegisterRequest;
 import com.worksshow.dto.ResetPasswordRequest;
@@ -143,11 +144,12 @@ public class UserController {
     /**
      * 退出登录
      * <p>
-     * 将当前 access token 加入黑名单,删除所有 refresh token。
+     * 将当前 access token 加入黑名单;请求体携带 refreshToken 时仅删除该设备的 refresh token。
+     * 请求体: { "refreshToken": "xxx" }(可选)
      */
     @PostMapping("/logout")
-    public Result<Void> logout() {
-        userService.logout();
+    public Result<Void> logout(@RequestBody(required = false) LogoutRequest request) {
+        userService.logout(request == null ? null : request.getRefreshToken());
         return Result.ok("已退出登录", null);
     }
 }
