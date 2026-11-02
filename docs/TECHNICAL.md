@@ -1,5 +1,11 @@
 # WorksShow 技术文档
 
+<div align="center">
+
+[ 🇨🇳 中文 ](./TECHNICAL.md) · [ 🇬🇧 English ](./TECHNICAL.en.md)
+
+</div>
+
 > 本文档面向开发者与代码评审，涵盖技术栈、系统架构、关键技术实现、数据库设计与 API 概览。
 > 项目功能介绍请参阅 [README.md](../README.md) | [中文 README](../README.zh-CN.md)
 
@@ -567,3 +573,4 @@ mysql -u root -p < backend/src/main/resources/sql/refresh_token.sql
 
 - [README.md](../README.md)（项目介绍，英文）
 - [README.zh-CN.md](../README.zh-CN.md)（项目介绍，中文）
+- [TECHNICAL.en.md](./TECHNICAL.en.md)（技术文档，English）

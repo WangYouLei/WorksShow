@@ -2,6 +2,8 @@
 
 > Fill in your content once, switch between templates, and export or deploy with one click — build your personal brand site.
 
+🇨🇳 **[中文 README](README.zh-CN.md)**
+
 <p align="center">
   <img alt="Vue" src="https://img.shields.io/badge/Vue-3.4-42b883?logo=vue.js&logoColor=white">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.3-3178c6?logo=typescript&logoColor=white">
@@ -27,31 +29,31 @@ No coding required: fill in your personal info, works, experiences and skills in
 
 ## ✨ Key Features
 
-| Feature | Description |
-| --- | --- |
-| 🎨 **10 stylish templates** | From ink-wash oriental to 3D particle planet, there's one for you (see below) |
-| ✏️ **Visual editing** | Form on the left, live preview on the right — WYSIWYG with auto-save |
-| 📦 **Single-file HTML export** | Export a zero-dependency HTML file, deployable to any static host |
-| 🚀 **One-click deploy** | Integrated with Tencent EdgeOne Pages — configure once, publish with a click |
-| 🤖 **AI assistant** | Chat-based resume copy polishing; generate a custom template from natural language |
-| 🖼️ **Image/video upload** | Works support cover images and video showcases |
-| 🔒 **Full account system** | Email verification sign-up, phone/email login, password recovery |
+| Feature                        | Description                                                                        |
+| ------------------------------ | ---------------------------------------------------------------------------------- |
+| 🎨 **10 stylish templates**    | From ink-wash oriental to 3D particle planet, there's one for you (see below)      |
+| ✏️ **Visual editing**          | Form on the left, live preview on the right — WYSIWYG with auto-save               |
+| 📦 **Single-file HTML export** | Export a zero-dependency HTML file, deployable to any static host                  |
+| 🚀 **One-click deploy**        | Integrated with Tencent EdgeOne Pages — configure once, publish with a click       |
+| 🤖 **AI assistant**            | Chat-based resume copy polishing; generate a custom template from natural language |
+| 🖼️ **Image/video upload**     | Works support cover images and video showcases                                     |
+| 🔒 **Full account system**     | Email verification sign-up, phone/email login, password recovery                   |
 
 ***
 
 ## 🖼️ Template Gallery
 
-| Template | Style |
-| --- | --- |
-| Mo Yun (墨韵) | Oriental ink-wash × magazine |
-| Pastel (粉彩) | Soft pastels × light & modern |
-| Aurora (极光) | Deep space × glassmorphism × Bento Grid |
-| Dawn (晨曦) | Warm editorial × ochre orange |
-| Brutal (野性) | Brutalism × hard borders × primary colors |
-| Gazette (报章) | Classic newspaper × print aesthetics × multi-column |
-| Glass 3D (琉璃 3D) | Pastel gradient sky × glassmorphism × real 3D floating scene |
-| Cube Dossier (立方档案) | Interactive 3D info cube, six faces for six sections |
-| Particle Planet (粒子星球) | 3D planet of glowing particles with shape-shifting narrative |
+| Template               | Style                                                                     |
+| ---------------------- | ------------------------------------------------------------------------- |
+| Mo Yun (墨韵)            | Oriental ink-wash × magazine                                              |
+| Pastel (粉彩)            | Soft pastels × light & modern                                             |
+| Aurora (极光)            | Deep space × glassmorphism × Bento Grid                                   |
+| Dawn (晨曦)              | Warm editorial × ochre orange                                             |
+| Brutal (野性)            | Brutalism × hard borders × primary colors                                 |
+| Gazette (报章)           | Classic newspaper × print aesthetics × multi-column                       |
+| Glass 3D (琉璃 3D)       | Pastel gradient sky × glassmorphism × real 3D floating scene              |
+| Cube Dossier (立方档案)    | Interactive 3D info cube, six faces for six sections                      |
+| Particle Planet (粒子星球) | 3D planet of glowing particles with shape-shifting narrative              |
 | Virus Infection (病毒侵染) | Cinematic 3D virus, resume unfolds across a six-stage infection lifecycle |
 
 > The four 3D templates remain 100% offline-capable after export, with no external dependencies.
@@ -93,9 +95,7 @@ Open `http://localhost:5173` → sign up → pick a template → start editing �
 
 ## 📚 More Documentation
 
-- 📄 [**Technical Documentation**](docs/TECHNICAL.md) (in Chinese) — tech stack, architecture, key implementations, database design, API reference, environment variables and deployment details. For developers and code review.
-- 🇨🇳 [**中文 README**](README.zh-CN.md)
-- 📋 [Unimplemented Features](docs/未实现的功能.md) — planned feature list *(local only, not published to GitHub)*
+- 📄 **[Technical Documentation](docs/TECHNICAL.md)** (in Chinese) — tech stack, architecture, key implementations, database design, API reference, environment variables and deployment details. For developers and code review.
 
 ***
 
