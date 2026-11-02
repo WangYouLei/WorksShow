@@ -206,8 +206,9 @@ onBeforeUnmount(() => {
         <button class="modal-close" aria-label="关闭" type="button">
           <X :size="20" :stroke-width="1.75" />
         </button>
-        <div v-if="w.cover" class="vi-modal-cover">
-          <img :src="w.cover" :alt="w.title" loading="lazy" />
+        <div v-if="w.cover || w.videoUrl" class="vi-modal-cover">
+          <video v-if="w.videoUrl" :src="w.videoUrl" controls playsinline preload="metadata"></video>
+          <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
         </div>
         <div class="vi-modal-body">
           <span class="vi-modal-cat">{{ w.category }} · {{ w.year }}</span>
@@ -779,7 +780,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   background: rgba(77, 214, 189, 0.05);
 }
-.vi-modal-cover img {
+.vi-modal-cover img,
+.vi-modal-cover video {
   width: 100%;
   height: 100%;
   object-fit: cover;

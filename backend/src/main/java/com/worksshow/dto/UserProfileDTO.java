@@ -42,6 +42,8 @@ public class UserProfileDTO {
      */
     @Data
     public static class ProfileDTO {
+        /** 头像URL(来自 user 表,非 user_profile;保存时忽略,仅读取展示) */
+        private String avatar;
         /** 中文姓名(→pName) */
         private String name;
         /** 英文名(→pNameEn) */
@@ -78,6 +80,8 @@ public class UserProfileDTO {
         private String category;
         /** 封面图URL */
         private String cover;
+        /** 作品视频URL(OSS直传,有视频时模板渲染video标签) */
+        private String videoUrl;
         /** 作品描述 */
         private String description;
         /** 年份 */

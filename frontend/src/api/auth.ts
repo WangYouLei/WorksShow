@@ -45,6 +45,8 @@ export interface UserInfo {
 export interface UpdateProfileData {
   nickname: string
   gender?: number
+  /** 头像URL(OSS直传地址;空串清除头像) */
+  avatar?: string
 }
 
 /** 修改密码参数 */

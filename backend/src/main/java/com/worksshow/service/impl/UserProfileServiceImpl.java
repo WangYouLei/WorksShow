@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.worksshow.dto.UserProfileDTO;
 import com.worksshow.entity.UserExperience;
+import com.worksshow.entity.User;
 import com.worksshow.entity.UserProfile;
 import com.worksshow.entity.UserSkill;
 import com.worksshow.entity.UserWork;
@@ -53,6 +54,8 @@ public class UserProfileServiceImpl implements UserProfileService {
 
         UserProfileDTO dto = new UserProfileDTO();
         dto.setProfile(toProfileDTO(profile));
+        // 头像存于 user 表(与登录账号同表),读取时填充进档案供模板渲染
+        fillAvatar(userId, dto.getProfile());
 
         List<UserWork> works = userWorkMapper.selectList(
                 new LambdaQueryWrapper<UserWork>()
@@ -106,6 +109,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         // 3) 直接从内存构造返回(批量插入已回填主键 id),省去重新查库
         UserProfileDTO result = new UserProfileDTO();
         result.setProfile(toProfileDTO(profile));
+        fillAvatar(userId, result.getProfile());
         result.setWorks(savedWorks.stream().map(UserProfileServiceImpl::toWorkDTO).toList());
         result.setExperiences(savedExperiences.stream().map(UserProfileServiceImpl::toExperienceDTO).toList());
         result.setSkills(savedSkills.stream().map(UserProfileServiceImpl::toSkillDTO).toList());
@@ -113,6 +117,18 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     // ==================== 私有辅助方法 ====================
+
+    /**
+     * 将 user 表的头像填充进 ProfileDTO(avatar 不属于 user_profile,
+     * 保存档案时不落库,仅读取/返回时携带,供模板渲染)。
+     */
+    private static void fillAvatar(Long userId, UserProfileDTO.ProfileDTO profileDTO) {
+        if (profileDTO == null) {
+            return;
+        }
+        User user = Db.getById(userId, User.class);
+        profileDTO.setAvatar(user == null ? null : user.getAvatar());
+    }
 
     /**
      * 将 ProfileDTO 字段映射到 UserProfile 的 p_* 字段。
@@ -160,6 +176,7 @@ public class UserProfileServiceImpl implements UserProfileService {
             work.setTitle(w.getTitle());
             work.setCategory(w.getCategory());
             work.setCover(w.getCover());
+            work.setVideoUrl(w.getVideoUrl());
             work.setDescription(w.getDescription());
             work.setYear(w.getYear());
             work.setLink(w.getLink());
@@ -253,6 +270,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         dto.setTitle(work.getTitle());
         dto.setCategory(work.getCategory());
         dto.setCover(work.getCover());
+        dto.setVideoUrl(work.getVideoUrl());
         dto.setDescription(work.getDescription());
         dto.setYear(work.getYear());
         dto.setLink(work.getLink());

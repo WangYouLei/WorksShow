@@ -41,6 +41,7 @@ export function validatePortfolioData(data: Partial<PortfolioData>): PortfolioDa
     title: w?.title || '',
     category: w?.category || '',
     cover: w?.cover || '',
+    videoUrl: w?.videoUrl || '',
     description: w?.description || '',
     year: w?.year || '',
     link: w?.link,

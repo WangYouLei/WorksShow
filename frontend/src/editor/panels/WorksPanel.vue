@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { usePortfolioStore } from '@/composables/usePortfolioStore'
+import OssUploader from '@/components/OssUploader.vue'
 
 const props = defineProps<{ templateId: string }>()
 const store = usePortfolioStore(props.templateId)
@@ -10,6 +11,7 @@ const addWork = () => {
     title: '新作品',
     category: '分类',
     cover: '',
+    videoUrl: '',
     description: '',
     year: String(new Date().getFullYear()),
     tags: [],
@@ -49,7 +51,14 @@ const setTags = (i: number, val: string) => {
           <label class="ef-field"><span>标题</span><input v-model="work.title" class="ef-input" type="text" /></label>
           <label class="ef-field"><span>分类</span><input v-model="work.category" class="ef-input" type="text" /></label>
         </div>
-        <label class="ef-field"><span>封面图 URL</span><input v-model="work.cover" class="ef-input" type="text" /></label>
+        <div class="ef-field">
+          <span>封面图（上传或粘贴 URL）</span>
+          <OssUploader v-model="work.cover" type="image" />
+        </div>
+        <div class="ef-field">
+          <span>作品视频（可选，有视频时作品卡优先播放视频）</span>
+          <OssUploader v-model="work.videoUrl" type="video" />
+        </div>
         <label class="ef-field"><span>描述</span><textarea v-model="work.description" class="ef-textarea"></textarea></label>
         <div class="ef-row-two">
           <label class="ef-field"><span>年份</span><input v-model="work.year" class="ef-input" type="text" /></label>

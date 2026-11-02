@@ -50,7 +50,10 @@ const hasContact = computed(() => {
     <!-- 导航栏 -->
     <nav class="a-navbar">
       <a class="a-brand" href="#top">
-        <span class="brand-mark">{{ initials }}</span>
+        <span class="brand-mark">
+          <img v-if="data.profile.avatar" class="brand-avatar" :src="data.profile.avatar" alt="" />
+          <template v-else>{{ initials }}</template>
+        </span>
         <span class="brand-name">{{ data.profile.name }}</span>
       </a>
       <div class="nav-links">
@@ -138,8 +141,9 @@ const hasContact = computed(() => {
             tabindex="0"
             :aria-label="featured.title"
           >
-            <div v-if="featured.cover" class="featured-cover">
-              <img :src="featured.cover" :alt="featured.title" loading="lazy" />
+            <div v-if="featured.cover || featured.videoUrl" class="featured-cover">
+              <video v-if="featured.videoUrl" :src="featured.videoUrl" controls playsinline preload="metadata" @click.stop></video>
+              <img v-else :src="featured.cover" :alt="featured.title" loading="lazy" />
               <div class="featured-cover-veil"></div>
               <span class="featured-badge">旗舰作品</span>
             </div>
@@ -169,8 +173,9 @@ const hasContact = computed(() => {
             tabindex="0"
             :aria-label="w.title"
           >
-            <div v-if="w.cover" class="small-cover">
-              <img :src="w.cover" :alt="w.title" loading="lazy" />
+            <div v-if="w.cover || w.videoUrl" class="small-cover">
+              <video v-if="w.videoUrl" :src="w.videoUrl" controls playsinline preload="metadata" @click.stop></video>
+              <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
               <div class="small-cover-veil"></div>
               <span class="small-year">{{ w.year }}</span>
             </div>
@@ -328,8 +333,9 @@ const hasContact = computed(() => {
         <button class="modal-close" aria-label="关闭" type="button">
           <X :size="20" :stroke-width="1.75" />
         </button>
-        <div v-if="w.cover" class="modal-cover">
-          <img :src="w.cover" :alt="w.title" loading="lazy" />
+        <div v-if="w.cover || w.videoUrl" class="modal-cover">
+          <video v-if="w.videoUrl" :src="w.videoUrl" controls playsinline preload="metadata"></video>
+          <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
           <span class="modal-year">{{ w.year }}</span>
         </div>
         <div class="modal-body">
@@ -506,12 +512,18 @@ main,
   place-items: center;
   width: 36px;
   height: 36px;
+  overflow: hidden;
   font-weight: 800;
   font-size: 15px;
   color: #fff;
   background: var(--a-grad);
   border-radius: 10px;
   box-shadow: 0 8px 22px -8px rgba(129, 140, 248, 0.7);
+}
+.brand-mark .brand-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .brand-name {
   font-weight: 600;
@@ -936,7 +948,8 @@ main,
   overflow: hidden;
   background: var(--a-surface);
 }
-.featured-cover img {
+.featured-cover img,
+.featured-cover video {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -948,6 +961,7 @@ main,
 .featured-cover-veil {
   position: absolute;
   inset: 0;
+  pointer-events: none;
   background: linear-gradient(90deg, transparent 60%, var(--a-surface-2) 100%),
     linear-gradient(0deg, rgba(5, 5, 7, 0.4) 0%, transparent 50%);
 }
@@ -1040,7 +1054,8 @@ main,
   overflow: hidden;
   background: var(--a-surface);
 }
-.small-cover img {
+.small-cover img,
+.small-cover video {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -1052,6 +1067,7 @@ main,
 .small-cover-veil {
   position: absolute;
   inset: 0;
+  pointer-events: none;
   background: linear-gradient(0deg, rgba(5, 5, 7, 0.6) 0%, transparent 50%);
 }
 .small-year {
@@ -1556,7 +1572,8 @@ main,
   min-height: 320px;
   background: var(--a-bg-soft);
 }
-.modal-cover img {
+.modal-cover img,
+.modal-cover video {
   width: 100%;
   height: 100%;
   object-fit: cover;

@@ -38,7 +38,10 @@ const hasContact = computed(() => {
     <!-- 导航栏 -->
     <nav class="d-navbar">
       <a class="d-brand" href="#top">
-        <span class="brand-mark">{{ initials }}</span>
+        <span class="brand-mark">
+          <img v-if="data.profile.avatar" class="brand-avatar" :src="data.profile.avatar" alt="" />
+          <template v-else>{{ initials }}</template>
+        </span>
         <span class="brand-name">{{ data.profile.name }}</span>
       </a>
       <div class="nav-links">
@@ -97,8 +100,9 @@ const hasContact = computed(() => {
           tabindex="0"
           :aria-label="featured.title"
         >
-          <div v-if="featured.cover" class="feature-cover">
-            <img :src="featured.cover" :alt="featured.title" loading="lazy" />
+          <div v-if="featured.cover || featured.videoUrl" class="feature-cover">
+            <video v-if="featured.videoUrl" :src="featured.videoUrl" controls playsinline preload="metadata" @click.stop></video>
+            <img v-else :src="featured.cover" :alt="featured.title" loading="lazy" />
           </div>
           <div class="feature-body">
             <div class="feature-meta">
@@ -130,8 +134,9 @@ const hasContact = computed(() => {
             tabindex="0"
             :aria-label="w.title"
           >
-            <div v-if="w.cover" class="work-cover">
-              <img :src="w.cover" :alt="w.title" loading="lazy" />
+            <div v-if="w.cover || w.videoUrl" class="work-cover">
+              <video v-if="w.videoUrl" :src="w.videoUrl" controls playsinline preload="metadata" @click.stop></video>
+              <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
             </div>
             <div class="work-body">
               <div class="work-meta">
@@ -285,8 +290,9 @@ const hasContact = computed(() => {
         <button class="modal-close" aria-label="关闭" type="button">
           <X :size="20" :stroke-width="1.75" />
         </button>
-        <div v-if="w.cover" class="modal-cover">
-          <img :src="w.cover" :alt="w.title" loading="lazy" />
+        <div v-if="w.cover || w.videoUrl" class="modal-cover">
+          <video v-if="w.videoUrl" :src="w.videoUrl" controls playsinline preload="metadata"></video>
+          <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
         </div>
         <div class="modal-body">
           <span class="modal-cat">{{ w.category }} · {{ w.year }}</span>
@@ -380,12 +386,18 @@ const hasContact = computed(() => {
   place-items: center;
   width: 34px;
   height: 34px;
+  overflow: hidden;
   font-family: 'Noto Serif SC', serif;
   font-weight: 700;
   font-size: 15px;
   color: #fff;
   background: var(--d-ink);
   border-radius: 8px;
+}
+.brand-mark .brand-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .brand-name {
   font-weight: 600;
@@ -654,7 +666,8 @@ const hasContact = computed(() => {
   min-height: 360px;
   background: var(--d-bg-tint);
 }
-.feature-cover img {
+.feature-cover img,
+.feature-cover video {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -757,7 +770,8 @@ const hasContact = computed(() => {
   box-shadow: var(--d-shadow-soft);
   transition: box-shadow 0.3s ease;
 }
-.work-cover img {
+.work-cover img,
+.work-cover video {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -1200,7 +1214,8 @@ const hasContact = computed(() => {
   min-height: 300px;
   background: var(--d-bg-tint);
 }
-.modal-cover img {
+.modal-cover img,
+.modal-cover video {
   width: 100%;
   height: 100%;
   object-fit: cover;

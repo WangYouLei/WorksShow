@@ -46,7 +46,10 @@ onBeforeUnmount(() => {
 
     <header class="pp-top">
       <a class="pp-brand" href="#top">
-        <span class="pp-brand-mark">{{ initials }}</span>
+        <span class="pp-brand-mark">
+          <img v-if="data.profile.avatar" class="pp-brand-avatar" :src="data.profile.avatar" alt="" />
+          <template v-else>{{ initials }}</template>
+        </span>
         <span class="pp-brand-name">{{ data.profile.name }}</span>
       </a>
       <span class="pp-avail"><i></i>{{ data.profile.availability || '随时可用' }}</span>
@@ -103,8 +106,9 @@ onBeforeUnmount(() => {
             tabindex="0"
             :aria-label="w.title"
           >
-            <span v-if="w.cover" class="pp-work-cover">
-              <img :src="w.cover" :alt="w.title" loading="lazy" />
+            <span v-if="w.cover || w.videoUrl" class="pp-work-cover">
+              <video v-if="w.videoUrl" :src="w.videoUrl" muted playsinline preload="metadata"></video>
+              <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
             </span>
             <span class="pp-work-info">
               <strong>{{ w.title }}</strong>
@@ -172,8 +176,9 @@ onBeforeUnmount(() => {
         <button class="modal-close" aria-label="关闭" type="button">
           <X :size="20" :stroke-width="1.75" />
         </button>
-        <div v-if="w.cover" class="pp-modal-cover">
-          <img :src="w.cover" :alt="w.title" loading="lazy" />
+        <div v-if="w.cover || w.videoUrl" class="pp-modal-cover">
+          <video v-if="w.videoUrl" :src="w.videoUrl" controls playsinline preload="metadata"></video>
+          <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
         </div>
         <div class="pp-modal-body">
           <span class="pp-modal-cat">{{ w.category }} · {{ w.year }}</span>
@@ -267,12 +272,18 @@ onBeforeUnmount(() => {
   place-items: center;
   width: 34px;
   height: 34px;
+  overflow: hidden;
   font-weight: 800;
   font-size: 14px;
   color: #fff;
   background: linear-gradient(120deg, #38bdf8, #8b7cf6);
   border-radius: 11px;
   box-shadow: 0 0 24px rgba(56, 189, 248, 0.45);
+}
+.pp-brand-mark .pp-brand-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .pp-brand-name {
   font-weight: 700;
@@ -508,7 +519,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   background: rgba(255, 255, 255, 0.06);
 }
-.pp-work-cover img {
+.pp-work-cover img,
+.pp-work-cover video {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -727,7 +739,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   background: rgba(255, 255, 255, 0.04);
 }
-.pp-modal-cover img {
+.pp-modal-cover img,
+.pp-modal-cover video {
   width: 100%;
   height: 100%;
   object-fit: cover;

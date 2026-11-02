@@ -25,4 +25,8 @@ public class UpdateProfileRequest {
     @Min(value = 0, message = "性别取值不合法")
     @Max(value = 2, message = "性别取值不合法")
     private Integer gender;
+
+    /** 头像URL(OSS直传地址;null 不修改,空串清除头像) */
+    @Size(max = 255, message = "头像URL长度不能超过 255 个字符")
+    private String avatar;
 }

@@ -40,8 +40,9 @@ onUnmounted(() => {
           <X :size="20" :stroke-width="1.5" />
         </button>
 
-        <div v-if="work.cover" class="modal-cover">
-          <img :src="work.cover" :alt="work.title" loading="lazy" />
+        <div v-if="work.cover || work.videoUrl" class="modal-cover">
+          <video v-if="work.videoUrl" :src="work.videoUrl" controls playsinline preload="metadata"></video>
+          <img v-else :src="work.cover" :alt="work.title" loading="lazy" />
           <span class="modal-year">{{ work.year }}</span>
         </div>
 
@@ -127,7 +128,8 @@ onUnmounted(() => {
   background: var(--ink-soft);
 }
 
-.modal-cover img {
+.modal-cover img,
+.modal-cover video {
   width: 100%;
   height: 100%;
   object-fit: cover;

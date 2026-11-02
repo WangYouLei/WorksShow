@@ -149,6 +149,7 @@ CREATE TABLE IF NOT EXISTS `user_work` (
     `title`           VARCHAR(200) NOT NULL                            COMMENT '作品标题',
     `category`        VARCHAR(100)          DEFAULT NULL               COMMENT '分类(如"AI产品")',
     `cover`           VARCHAR(255)          DEFAULT NULL               COMMENT '封面图URL',
+    `video_url`       VARCHAR(500)          DEFAULT NULL               COMMENT '作品视频URL(OSS直传,有视频时模板渲染video标签)',
     `description`     TEXT                  DEFAULT NULL               COMMENT '作品描述',
     `year`            VARCHAR(20)           DEFAULT NULL               COMMENT '年份',
     `link`            VARCHAR(500)          DEFAULT NULL               COMMENT '外链URL',
@@ -494,3 +495,19 @@ CREATE TABLE IF NOT EXISTS `ai_template` (
     PRIMARY KEY (`id`),
     KEY `idx_user_time` (`user_id`, `create_time`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'AI 生成模板';
+
+-- ============================================================
+-- 数据库迁移: user_work 表新增视频字段(仅旧库执行,一次性迁移)
+-- ------------------------------------------------------------
+-- 说明:
+--   支持作品视频(OSS 直传 URL,有视频时模板作品卡渲染 video 标签)。
+--   - 全新库: 上方 CREATE TABLE 已含 video_url 列,此块保持注释,跳过
+--   - 旧库:   取消下方 /* */ 注释后执行(列已存在会报错,按需跳过)
+-- ============================================================
+
+/* 旧库迁移语句(全新库默认整块注释,旧库取消此块注释后执行;新库执行会因列已存在而报错)
+
+ALTER TABLE `user_work`
+    ADD COLUMN `video_url` VARCHAR(500) DEFAULT NULL COMMENT '作品视频URL(OSS直传,有视频时模板渲染video标签)' AFTER `cover`;
+
+*/ -- 迁移块结束

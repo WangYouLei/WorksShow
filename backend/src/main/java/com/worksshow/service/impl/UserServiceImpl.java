@@ -173,6 +173,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (request.getGender() != null) {
             user.setGender(request.getGender());
         }
+        // 头像:null 不修改(updateById 忽略 null 字段),空串即清除
+        user.setAvatar(request.getAvatar());
 
         updateById(user);
         log.info("用户资料更新成功: id={}, nickname={}", user.getId(), user.getNickname());

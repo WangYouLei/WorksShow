@@ -244,7 +244,10 @@ onBeforeUnmount(() => {
     <!-- 悬浮玻璃导航 -->
     <nav class="g3-nav">
       <a class="g3-brand" href="#top">
-        <span class="g3-brand-mark">{{ initials }}</span>
+        <span class="g3-brand-mark">
+          <img v-if="data.profile.avatar" class="g3-avatar-img" :src="data.profile.avatar" alt="" />
+          <template v-else>{{ initials }}</template>
+        </span>
         <span class="g3-brand-name">{{ data.profile.name }}</span>
       </a>
       <div class="g3-nav-links">
@@ -302,7 +305,10 @@ onBeforeUnmount(() => {
               <span class="g3-sphere g3-sphere-a" aria-hidden="true"></span>
               <span class="g3-sphere g3-sphere-b" aria-hidden="true"></span>
               <div class="g3-idcard">
-                <span class="g3-avatar">{{ initials }}</span>
+                <span class="g3-avatar">
+                  <img v-if="data.profile.avatar" class="g3-avatar-img" :src="data.profile.avatar" alt="" />
+                  <template v-else>{{ initials }}</template>
+                </span>
                 <div class="g3-idcard-text">
                   <strong>{{ data.profile.name }}</strong>
                   <span>{{ data.profile.title }}</span>
@@ -342,8 +348,9 @@ onBeforeUnmount(() => {
               tabindex="0"
               :aria-label="featured.title"
             >
-              <div v-if="featured.cover" class="g3-work-cover g3-work-cover-featured">
-                <img :src="featured.cover" :alt="featured.title" loading="lazy" />
+              <div v-if="featured.cover || featured.videoUrl" class="g3-work-cover g3-work-cover-featured">
+                <video v-if="featured.videoUrl" :src="featured.videoUrl" controls playsinline preload="metadata" @click.stop></video>
+                <img v-else :src="featured.cover" :alt="featured.title" loading="lazy" />
                 <span class="g3-work-cat">{{ featured.category }}</span>
                 <span class="g3-work-year">{{ featured.year }}</span>
               </div>
@@ -376,8 +383,9 @@ onBeforeUnmount(() => {
               tabindex="0"
               :aria-label="w.title"
             >
-              <div v-if="w.cover" class="g3-work-cover">
-                <img :src="w.cover" :alt="w.title" loading="lazy" />
+              <div v-if="w.cover || w.videoUrl" class="g3-work-cover">
+                <video v-if="w.videoUrl" :src="w.videoUrl" controls playsinline preload="metadata" @click.stop></video>
+                <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
                 <span class="g3-work-cat">{{ w.category }}</span>
                 <span class="g3-work-year">{{ w.year }}</span>
               </div>
@@ -542,8 +550,9 @@ onBeforeUnmount(() => {
         <button class="modal-close" aria-label="关闭" type="button">
           <X :size="20" :stroke-width="1.75" />
         </button>
-        <div v-if="w.cover" class="g3-modal-cover">
-          <img :src="w.cover" :alt="w.title" loading="lazy" />
+        <div v-if="w.cover || w.videoUrl" class="g3-modal-cover">
+          <video v-if="w.videoUrl" :src="w.videoUrl" controls playsinline preload="metadata"></video>
+          <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
           <span class="g3-modal-year">{{ w.year }}</span>
         </div>
         <div class="g3-modal-body">
@@ -702,6 +711,7 @@ main,
   place-items: center;
   width: 36px;
   height: 36px;
+  overflow: hidden;
   font-weight: 800;
   font-size: 15px;
   color: #fff;
@@ -1011,12 +1021,19 @@ main,
   place-items: center;
   width: 54px;
   height: 54px;
+  overflow: hidden;
   font-size: 22px;
   font-weight: 800;
   color: #fff;
   background: var(--g3-grad);
   border-radius: 18px;
   box-shadow: 0 14px 30px -10px rgba(124, 108, 246, 0.7);
+}
+.g3-brand-mark .g3-avatar-img,
+.g3-avatar .g3-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .g3-idcard-text {
   display: flex;
@@ -1180,7 +1197,8 @@ main,
   overflow: hidden;
   background: rgba(238, 240, 255, 0.6);
 }
-.g3-work-cover img {
+.g3-work-cover img,
+.g3-work-cover video {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -1710,7 +1728,8 @@ main,
   min-height: 300px;
   background: rgba(238, 240, 255, 0.8);
 }
-.g3-modal-cover img {
+.g3-modal-cover img,
+.g3-modal-cover video {
   width: 100%;
   height: 100%;
   object-fit: cover;

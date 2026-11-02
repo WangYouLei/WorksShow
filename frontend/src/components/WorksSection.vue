@@ -35,8 +35,9 @@ const emit = defineEmits<{ select: [work: Work] }>()
           :data-work-id="work.id"
           @click="emit('select', work)"
         >
-          <div v-if="work.cover" class="work-cover">
-            <img :src="work.cover" :alt="work.title" loading="lazy" />
+          <div v-if="work.cover || work.videoUrl" class="work-cover">
+            <video v-if="work.videoUrl" :src="work.videoUrl" controls playsinline preload="metadata" @click.stop></video>
+            <img v-else :src="work.cover" :alt="work.title" loading="lazy" />
             <span class="work-year font-mono">{{ work.year }}</span>
             <span class="work-arrow">
               <ArrowUpRight :size="20" :stroke-width="1.5" />
@@ -109,7 +110,8 @@ const emit = defineEmits<{ select: [work: Work] }>()
   margin-bottom: 1.25rem;
 }
 
-.work-cover img {
+.work-cover img,
+.work-cover video {
   width: 100%;
   height: 100%;
   object-fit: cover;

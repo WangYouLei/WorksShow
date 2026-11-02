@@ -14,6 +14,7 @@ import EdgeOneConfigPanel from '@/components/EdgeOneConfigPanel.vue'
 import DeploymentRecordsPanel from '@/components/DeploymentRecordsPanel.vue'
 import CareerIntentionPanel from '@/editor/panels/CareerIntentionPanel.vue'
 import ProfilePanel from '@/editor/panels/ProfilePanel.vue'
+import OssUploader from '@/components/OssUploader.vue'
 import { destroyPortfolioStore } from '@/composables/usePortfolioStore'
 
 const router = useRouter()
@@ -30,6 +31,7 @@ const success = ref('')
 const profileForm = reactive<UpdateProfileData>({
   nickname: '',
   gender: 0,
+  avatar: '',
 })
 
 // 密码修改表单
@@ -55,8 +57,36 @@ const loadUserInfo = async () => {
     userInfo.value = await getUserInfo()
     profileForm.nickname = userInfo.value.nickname
     profileForm.gender = userInfo.value.gender
+    profileForm.avatar = userInfo.value.avatar ?? ''
   } catch (e) {
     error.value = (e as Error).message
+  }
+}
+
+/**
+ * 头像变更(上传成功或清除)后立即持久化。
+ * 使用服务端当前的昵称/性别而非表单值,避免表单中未保存的
+ * 昵称编辑因头像保存被意外提交(昵称校验失败也互不影响)。
+ */
+const onAvatarChange = async (avatar: string) => {
+  if (!userInfo.value) return
+  loading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    const updated = await updateProfile({
+      nickname: userInfo.value.nickname,
+      gender: userInfo.value.gender,
+      avatar,
+    })
+    userInfo.value = updated
+    profileForm.avatar = updated.avatar ?? ''
+    localStorage.setItem('works-show:user', JSON.stringify(updated))
+    success.value = avatar ? '头像已更新' : '头像已清除'
+  } catch (e) {
+    error.value = (e as Error).message
+  } finally {
+    loading.value = false
   }
 }
 
@@ -274,6 +304,22 @@ onUnmounted(() => {
       <!-- 账号信息 -->
       <div v-if="activeTab === 'profile'" class="tab-content">
         <form class="form" @submit.prevent="onUpdateProfile">
+          <div class="field">
+            <span class="field-label">头像（模板中将优先显示头像，无则显示昵称首字）</span>
+            <div class="avatar-row">
+              <img v-if="profileForm.avatar" class="avatar-preview" :src="profileForm.avatar" alt="头像" />
+              <span v-else class="avatar-preview avatar-placeholder">
+                {{ (userInfo?.nickname || '?').charAt(0) }}
+              </span>
+              <OssUploader
+                v-model="profileForm.avatar"
+                type="image"
+                :show-url-input="false"
+                button-text="上传头像"
+                @update:model-value="onAvatarChange"
+              />
+            </div>
+          </div>
           <label class="field">
             <span class="field-label">昵称<i class="required-mark">*</i></span>
             <input v-model="profileForm.nickname" type="text" class="field-input" placeholder="必填,2-20 字符" required />
@@ -498,6 +544,29 @@ onUnmounted(() => {
 .field-input.readonly {
   opacity: 0.5;
   cursor: not-allowed;
+}
+.avatar-row {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.avatar-preview {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.avatar-placeholder {
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: #0a0a0f;
+  background: #d4a574;
+}
+.avatar-row :deep(.oss-uploader) {
+  flex: 1;
 }
 select.field-input {
   cursor: pointer;

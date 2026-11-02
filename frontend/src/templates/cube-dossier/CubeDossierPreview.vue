@@ -55,7 +55,10 @@ onBeforeUnmount(() => {
 
     <header class="cd-top">
       <a class="cd-brand" href="#top">
-        <span class="cd-brand-mark">{{ initials }}</span>
+        <span class="cd-brand-mark">
+          <img v-if="data.profile.avatar" class="cd-avatar-img" :src="data.profile.avatar" alt="" />
+          <template v-else>{{ initials }}</template>
+        </span>
         <span class="cd-brand-name">{{ data.profile.name }}</span>
       </a>
       <span class="cd-avail"><i></i>{{ data.profile.availability || '随时可用' }}</span>
@@ -162,7 +165,10 @@ onBeforeUnmount(() => {
       <!-- 封面 -->
       <div class="cd-view" data-panel="front">
         <div class="cd-view-head cd-view-head-cover">
-          <span class="cd-avatar">{{ initials }}</span>
+          <span class="cd-avatar">
+            <img v-if="data.profile.avatar" class="cd-avatar-img" :src="data.profile.avatar" alt="" />
+            <template v-else>{{ initials }}</template>
+          </span>
           <div>
             <strong class="cd-view-name">{{ data.profile.name }}</strong>
             <span class="cd-view-nameen">{{ data.profile.nameEn }}</span>
@@ -201,8 +207,9 @@ onBeforeUnmount(() => {
             tabindex="0"
             :aria-label="w.title"
           >
-            <span v-if="w.cover" class="cd-work-cover">
-              <img :src="w.cover" :alt="w.title" loading="lazy" />
+            <span v-if="w.cover || w.videoUrl" class="cd-work-cover">
+              <video v-if="w.videoUrl" :src="w.videoUrl" muted playsinline preload="metadata"></video>
+              <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
             </span>
             <span class="cd-work-info">
               <strong class="cd-work-title">{{ w.title }}</strong>
@@ -274,8 +281,9 @@ onBeforeUnmount(() => {
         <button class="modal-close" aria-label="关闭" type="button">
           <X :size="20" :stroke-width="1.75" />
         </button>
-        <div v-if="w.cover" class="cd-modal-cover">
-          <img :src="w.cover" :alt="w.title" loading="lazy" />
+        <div v-if="w.cover || w.videoUrl" class="cd-modal-cover">
+          <video v-if="w.videoUrl" :src="w.videoUrl" controls playsinline preload="metadata"></video>
+          <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
         </div>
         <div class="cd-modal-body">
           <span class="cd-modal-cat">{{ w.category }} · {{ w.year }}</span>
@@ -383,6 +391,7 @@ onBeforeUnmount(() => {
   place-items: center;
   width: 34px;
   height: 34px;
+  overflow: hidden;
   font-weight: 800;
   font-size: 14px;
   color: #fff;
@@ -733,12 +742,19 @@ onBeforeUnmount(() => {
   place-items: center;
   width: 52px;
   height: 52px;
+  overflow: hidden;
   font-size: 21px;
   font-weight: 800;
   color: #fff;
   background: linear-gradient(120deg, #7c6cf6, #ec5fa8);
   border-radius: 17px;
   box-shadow: 0 12px 26px -8px rgba(124, 108, 246, 0.6);
+}
+.cd-brand-mark .cd-avatar-img,
+.cd-avatar .cd-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .cd-view-name {
   display: block;
@@ -917,7 +933,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   background: rgba(238, 240, 255, 0.8);
 }
-.cd-work-cover img {
+.cd-work-cover img,
+.cd-work-cover video {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -1118,7 +1135,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   background: rgba(238, 240, 255, 0.8);
 }
-.cd-modal-cover img {
+.cd-modal-cover img,
+.cd-modal-cover video {
   width: 100%;
   height: 100%;
   object-fit: cover;

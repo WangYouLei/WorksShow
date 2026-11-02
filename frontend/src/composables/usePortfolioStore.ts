@@ -73,6 +73,8 @@ function normalizeUserProfile(backend: BackendUserProfile, fallback: Profile): P
   const p = backend.profile
   return {
     profile: {
+      // 头像来自 user 表(后端读取档案时填充);null 回落到当前值(默认为 undefined)
+      avatar: p.avatar ?? fallback.avatar,
       name: p.name ?? fallback.name,
       nameEn: p.nameEn ?? fallback.nameEn,
       title: p.title ?? fallback.title,

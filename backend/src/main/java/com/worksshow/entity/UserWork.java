@@ -39,6 +39,9 @@ public class UserWork {
     /** 封面图URL */
     private String cover;
 
+    /** 作品视频URL(OSS直传,有视频时模板渲染video标签) */
+    private String videoUrl;
+
     /** 作品描述 */
     private String description;
 

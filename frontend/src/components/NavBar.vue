@@ -63,7 +63,10 @@ onUnmounted(() => {
         class="logo"
         @click="handleNavClick($event, '#home')"
       >
-        <span class="logo-mark">{{ (profile.name || '墨').charAt(0) }}</span>
+        <span class="logo-mark">
+          <img v-if="profile.avatar" class="logo-avatar" :src="profile.avatar" alt="" />
+          <template v-else>{{ (profile.name || '墨').charAt(0) }}</template>
+        </span>
         <span class="logo-text">{{ profile.nameEn || 'Mobai' }}</span>
       </a>
 
@@ -140,6 +143,7 @@ onUnmounted(() => {
   place-items: center;
   width: 2rem;
   height: 2rem;
+  overflow: hidden;
   font-family: var(--font-serif);
   font-size: 1.125rem;
   font-weight: 700;
@@ -147,6 +151,12 @@ onUnmounted(() => {
   background: var(--accent);
   border-radius: var(--radius-sm);
   transition: transform var(--dur) var(--ease);
+}
+
+.logo-mark .logo-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .logo:hover .logo-mark {

@@ -1,6 +1,8 @@
 // 数据类型定义
 
 export interface Profile {
+  /** 头像URL(存于 user 表,模板优先显示,无则回落姓名首字母) */
+  avatar?: string
   name: string
   nameEn: string
   title: string
@@ -18,6 +20,8 @@ export interface Work {
   title: string
   category: string
   cover: string
+  /** 作品视频URL(OSS直传,有视频时模板渲染video标签) */
+  videoUrl?: string
   description: string
   year: string
   link?: string
