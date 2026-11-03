@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>个人主页</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0b1020;
+    --panel: rgba(255,255,255,.045);
+    --panel-strong: rgba(255,255,255,.08);
+    --border: rgba(255,255,255,.09);
+    --text: #e8ecf4;
+    --muted: #98a4bd;
+    --cyan: #7dd3fc;
+    --violet: #c4b5fd;
+    --grad: linear-gradient(120deg, var(--cyan), var(--violet));
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); line-height: 1.75; font-size: 15px; overflow-x: hidden; }
+  /* 深空背景：两层径向渐变 + 细网格 */
+  body::before { content: ''; position: fixed; inset: 0; z-index: -1;
+    background:
+      radial-gradient(900px 500px at 15% -5%, rgba(125,211,252,.14), transparent 60%),
+      radial-gradient(800px 600px at 90% 15%, rgba(196,181,253,.12), transparent 60%),
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size: auto, auto, 44px 44px, 44px 44px; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 72px 28px 48px; }
+
+  /* 头部 */
+  .hello { font-family: var(--mono); color: var(--cyan); font-size: 14px; letter-spacing: 2px; }
+  h1 { font-size: 54px; line-height: 1.15; font-weight: 800; margin: 10px 0 2px; letter-spacing: 1px; }
+  h1 .grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .name-en { font-family: var(--mono); color: var(--muted); letter-spacing: 4px; font-size: 13px; text-transform: uppercase; }
+  .title-line { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 16px 0 6px; }
+  .title-chip { font-size: 15px; font-weight: 600; color: var(--text); border: 1px solid var(--border); background: var(--panel); border-radius: 999px; padding: 3px 14px; }
+  .loc { color: var(--muted); font-size: 13.5px; }
+  .avail { color: #86efac; font-size: 13.5px; }
+  .avail::before { content: '●'; font-size: 9px; margin-right: 6px; vertical-align: 2px; }
+  .tagline { color: var(--muted); font-size: 16.5px; max-width: 640px; margin-top: 10px; }
+
+  /* 数字亮点 */
+  .stats { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 26px; }
+  .stat { border: 1px solid var(--border); background: var(--panel); border-radius: 12px; padding: 12px 22px; backdrop-filter: blur(6px); }
+  .stat .v { font-family: var(--mono); font-size: 22px; font-weight: 700; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .stat .l { font-size: 12.5px; color: var(--muted); }
+
+  /* 区块 */
+  section { margin-top: 64px; }
+  h2 { font-family: var(--mono); font-size: 13px; letter-spacing: 4px; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+  h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+  h2 i { font-style: normal; color: var(--cyan); }
+  .bio { font-size: 16px; color: #c9d2e3; max-width: 760px; }
+
+  /* 时间线 */
+  .timeline { border-left: 1px solid var(--border); margin-left: 6px; padding-left: 26px; }
+  .exp { position: relative; padding: 4px 0 26px; }
+  .exp::before { content: ''; position: absolute; left: -31px; top: 10px; width: 9px; height: 9px; border-radius: 50%; background: var(--bg); border: 2px solid var(--cyan); }
+  .exp.edu::before { border-color: var(--violet); }
+  .exp .period { font-family: var(--mono); font-size: 12.5px; color: var(--cyan); }
+  .exp.edu .period { color: var(--violet); }
+  .exp .head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
+  .exp .role { font-size: 17px; font-weight: 700; }
+  .exp .org { color: var(--muted); font-size: 14px; }
+  .exp ul { margin: 8px 0 0 18px; color: var(--muted); font-size: 14px; }
+  .exp ul li { margin: 3px 0; }
+  .exp ul li::marker { color: var(--cyan); }
+
+  /* 项目卡片 */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .card { border: 1px solid var(--border); background: var(--panel); border-radius: 14px; padding: 20px; backdrop-filter: blur(6px); transition: transform .18s ease, border-color .18s ease; display: flex; flex-direction: column; }
+  .card:hover { transform: translateY(-3px); border-color: rgba(125,211,252,.45); }
+  .card .head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .card .t { font-size: 16.5px; font-weight: 700; }
+  .card .y { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+  .card .cat { display: inline-block; font-size: 12px; color: var(--cyan); margin: 6px 0 2px; letter-spacing: 1px; }
+  .card p { color: var(--muted); font-size: 14px; margin: 6px 0 12px; flex: 1; }
+  .card .foot { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .card .tag { font-family: var(--mono); font-size: 11.5px; color: #a5b4cf; border: 1px solid var(--border); border-radius: 6px; padding: 1px 8px; }
+  .card .link { font-size: 13px; color: var(--cyan); text-decoration: none; margin-left: auto; }
+  .card .link:hover { text-decoration: underline; }
+
+  /* 技能 */
+  .skill-group { margin-bottom: 14px; }
+  .skill-group .c { font-size: 13px; color: var(--muted); letter-spacing: 1px; margin-bottom: 8px; }
+  .skill-group .c b { color: var(--text); font-size: 14.5px; margin-right: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font-family: var(--mono); font-size: 13px; color: var(--text); background: var(--panel-strong); border: 1px solid var(--border); border-radius: 999px; padding: 3px 14px; }
+
+  /* 页脚 */
+  footer { margin-top: 72px; border-top: 1px solid var(--border); padding: 28px 0 12px; text-align: center; }
+  footer .cta { font-family: var(--mono); font-size: 13px; color: var(--muted); letter-spacing: 2px; }
+  footer .links { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px 26px; margin-top: 12px; }
+  footer a { color: var(--text); text-decoration: none; font-size: 14.5px; border-bottom: 1px solid transparent; }
+  footer a:hover { color: var(--cyan); border-bottom-color: var(--cyan); }
+  footer .copy { margin-top: 18px; font-size: 12.5px; color: var(--muted); opacity: .7; }
+
+  /* 入场动画 */
+  @media (prefers-reduced-motion: no-preference) {
+    .wrap > *, section, .stat, .card { animation: rise .5s ease both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  }
+  @media (max-width: 640px) {
+    .wrap { padding: 48px 20px; }
+    h1 { font-size: 38px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script id="portfolio-data" type="application/json">
+{
+  "profile": {
+    "name": "陈墨远",
+    "nameEn": "Chen Moyuan",
+    "title": "Java 后端工程师",
+    "tagline": "5 年分布式系统经验，专注高并发与稳定性",
+    "bio": "长期从事电商与支付方向的后端研发，主导过日均千万级订单系统的服务化改造。熟悉 Spring Boot、MySQL、Redis 与消息队列的工程化实践，对限流、熔断、灰度发布等稳定性建设有完整落地经验。偏好用数据说话，相信好的系统是设计出来的，更是运营出来的。",
+    "email": "chenmoyuan@example.com",
+    "phone": "138****0000",
+    "location": "杭州",
+    "availability": "在职，看新机会",
+    "stats": [
+      { "label": "工作年限", "value": "5 年" },
+      { "label": "主导项目", "value": "8 个" },
+      { "label": "线上事故", "value": "0 起" }
+    ],
+    "socials": [
+      { "name": "GitHub", "url": "https://github.com/example" },
+      { "name": "技术博客", "url": "https://blog.example.com" }
+    ]
+  },
+  "experiences": [
+    {
+      "period": "2022.03 - 至今",
+      "title": "高级后端工程师",
+      "organization": "某电商科技公司",
+      "description": "负责订单中台的架构演进与稳定性建设\n主导订单服务拆分，接口平均耗时从 320ms 降至 85ms\n搭建全链路压测体系，支撑大促 12 倍日常流量",
+      "type": "work"
+    },
+    {
+      "period": "2019.07 - 2022.02",
+      "title": "后端工程师",
+      "organization": "某支付服务商",
+      "description": "参与支付网关研发，负责渠道接入与对账系统\n设计异步对账方案，差异账处理时效从 T+1 提升到小时级",
+      "type": "work"
+    },
+    {
+      "period": "2015.09 - 2019.06",
+      "title": "本科 · 计算机科学与技术",
+      "organization": "某大学",
+      "description": "ACM 校队成员，区域赛铜牌",
+      "type": "education"
+    }
+  ],
+  "works": [
+    {
+      "title": "订单中台服务化改造",
+      "category": "后端系统",
+      "description": "将单体订单系统拆分为 6 个领域服务，引入分布式事务与最终一致性方案，大促期间零故障。",
+      "year": "2024",
+      "link": "",
+      "tags": ["Spring Boot", "MySQL", "RocketMQ"]
+    },
+    {
+      "title": "全链路压测平台",
+      "category": "内部工具",
+      "description": "支持流量染色与影子库的压测平台，覆盖核心链路 23 条，容量评估效率提升 60%。",
+      "year": "2023",
+      "link": "",
+      "tags": ["Java", "Redis", "K8s"]
+    },
+    {
+      "title": "slow-sql-detector",
+      "category": "开源项目",
+      "description": "基于字节码增强的慢 SQL 诊断工具，GitHub 1.2k Star。",
+      "year": "2022",
+      "link": "https://github.com/example/slow-sql-detector",
+      "tags": ["Java Agent", "ASM"]
+    }
+  ],
+  "skills": [
+    { "category": "后端", "items": ["Java", "Spring Boot", "MyBatis", "Netty"] },
+    { "category": "数据库与中间件", "items": ["MySQL", "Redis", "RocketMQ", "Elasticsearch"] },
+    { "category": "工程与运维", "items": ["K8s", "Docker", "Jenkins", "Arthas"] }
+  ]
+}
+</script>
+<script>
+(function () {
+  'use strict';
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+  function lines(desc) {
+    return String(desc || '').split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+  }
+
+  var data = JSON.parse(document.getElementById('portfolio-data').textContent);
+  var p = data.profile || {};
+  document.title = (p.name || '个人主页') + ' · 个人主页';
+
+  var html = '';
+
+  /* 头部 */
+  html += '<div class="hello">// HELLO WORLD, I AM</div>';
+  html += '<h1><span class="grad">' + esc(p.name) + '</span></h1>';
+  if (p.nameEn) html += '<div class="name-en">' + esc(p.nameEn) + '</div>';
+  html += '<div class="title-line">';
+  if (p.title) html += '<span class="title-chip">' + esc(p.title) + '</span>';
+  if (p.location) html += '<span class="loc">' + esc(p.location) + '</span>';
+  if (p.availability) html += '<span class="avail">' + esc(p.availability) + '</span>';
+  html += '</div>';
+  if (p.tagline) html += '<p class="tagline">' + esc(p.tagline) + '</p>';
+  if (p.stats && p.stats.length) {
+    html += '<div class="stats">' + p.stats.map(function (s) {
+      return '<div class="stat"><div class="v">' + esc(s.value) + '</div><div class="l">' + esc(s.label) + '</div></div>';
+    }).join('') + '</div>';
+  }
+
+  /* 关于 */
+  if (p.bio) html += '<section id="about"><h2><i>01.</i>关于我</h2><p class="bio">' + esc(p.bio) + '</p></section>';
+
+  /* 经历 */
+  function expSection(type, num, label, cls) {
+    var list = (data.experiences || []).filter(function (e) { return (e.type || 'work') === type; });
+    if (!list.length) return '';
+    var out = '<section><h2><i>' + num + '.</i>' + label + '</h2><div class="timeline">';
+    list.forEach(function (e) {
+      out += '<div class="exp ' + cls + '">';
+      out += '<div class="period">' + esc(e.period) + '</div>';
+      out += '<div class="head"><span class="role">' + esc(e.title) + '</span><span class="org">' + esc(e.organization) + '</span></div>';
+      var ls = lines(e.description);
+      if (ls.length) out += '<ul>' + ls.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('') + '</ul>';
+      out += '</div>';
+    });
+    return out + '</div></section>';
+  }
+  html += expSection('work', '02', '经历', 'work');
+  html += expSection('education', '03', '教育', 'edu');
+
+  /* 项目 */
+  if (data.works && data.works.length) {
+    html += '<section><h2><i>04.</i>项目作品</h2><div class="cards">';
+    data.works.forEach(function (w) {
+      html += '<div class="card">';
+      html += '<div class="head"><span class="t">' + esc(w.title) + '</span>' + (w.year ? '<span class="y">' + esc(w.year) + '</span>' : '') + '</div>';
+      if (w.category) html += '<span class="cat"># ' + esc(w.category) + '</span>';
+      if (w.description) html += '<p>' + esc(w.description) + '</p>';
+      html += '<div class="foot">';
+      (w.tags || []).forEach(function (t) { html += '<span class="tag">' + esc(t) + '</span>'; });
+      if (w.link) html += '<a class="link" href="' + esc(w.link) + '" target="_blank" rel="noopener">Link →</a>';
+      html += '</div></div>';
+    });
+    html += '</div></section>';
+  }
+
+  /* 技能 */
+  if (data.skills && data.skills.length) {
+    html += '<section><h2><i>05.</i>技术栈</h2>';
+    data.skills.forEach(function (s) {
+      html += '<div class="skill-group"><div class="c"><b>' + esc(s.category) + '</b></div><div class="chips">' +
+        (s.items || []).map(function (t) { return '<span class="chip">' + esc(t) + '</span>'; }).join('') + '</div></div>';
+    });
+    html += '</section>';
+  }
+
+  /* 页脚 */
+  html += '<footer><div class="cta">// FIND ME</div><div class="links">';
+  if (p.email) html += '<a href="mailto:' + esc(p.email) + '">' + esc(p.email) + '</a>';
+  if (p.phone) html += '<a href="tel:' + esc(p.phone) + '">' + esc(p.phone) + '</a>';
+  (p.socials || []).forEach(function (s) {
+    if (s.url) html += '<a href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.name || s.url) + '</a>';
+  });
+  html += '</div><div class="copy">© ' + new Date().getFullYear() + ' ' + esc(p.name) + ' · Powered by EdgeOne</div></footer>';
+
+  document.getElementById('app').innerHTML = html;
+})();
+</script>
+</body>
+</html>
