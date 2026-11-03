@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { safeUrl } from '@/utils/safeUrl'
+import WorkMedia from '@/components/WorkMedia.vue'
 import {
   X,
   ArrowUpRight,
@@ -115,9 +116,8 @@ const hasContact = computed(() => {
               tabindex="0"
               :aria-label="featured.title"
             >
-              <div v-if="featured.cover || featured.videoUrl" class="feature-cover">
-                <video v-if="featured.videoUrl" :src="featured.videoUrl" controls playsinline preload="metadata" @click.stop></video>
-                <img v-else :src="featured.cover" :alt="featured.title" loading="lazy" />
+              <div v-if="featured.cover || featured.videoUrl || featured.images?.length" class="feature-cover">
+                <WorkMedia :work="featured" />
               </div>
               <div class="feature-body">
                 <span class="feature-cat">{{ featured.category }}</span>
@@ -151,9 +151,8 @@ const hasContact = computed(() => {
             tabindex="0"
             :aria-label="w.title"
           >
-            <div v-if="w.cover || w.videoUrl" class="work-cover">
-              <video v-if="w.videoUrl" :src="w.videoUrl" controls playsinline preload="metadata" @click.stop></video>
-              <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
+            <div v-if="w.cover || w.videoUrl || w.images?.length" class="work-cover">
+              <WorkMedia :work="w" />
               <span class="work-year">{{ w.year }}</span>
             </div>
             <div class="work-body">
@@ -299,9 +298,8 @@ const hasContact = computed(() => {
       <div class="modal-overlay"></div>
       <article class="modal-card">
         <button class="modal-close" aria-label="关闭"><X :size="20" :stroke-width="1.75" /></button>
-        <div v-if="w.cover || w.videoUrl" class="modal-cover">
-          <video v-if="w.videoUrl" :src="w.videoUrl" controls playsinline preload="metadata"></video>
-          <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
+        <div v-if="w.cover || w.videoUrl || w.images?.length" class="modal-cover">
+          <WorkMedia :work="w" />
           <span class="modal-year">{{ w.year }}</span>
         </div>
         <div class="modal-body">
@@ -631,13 +629,6 @@ const hasContact = computed(() => {
   background: var(--g-bg-soft);
   border-bottom: 1px solid var(--g-ink);
 }
-.feature-cover img,
-.feature-cover video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: grayscale(0.15) contrast(1.05);
-}
 .feature-body {
   padding: 22px 24px 26px;
 }
@@ -764,17 +755,6 @@ const hasContact = computed(() => {
   overflow: hidden;
   background: var(--g-bg);
   border-bottom: 1px solid var(--g-ink);
-}
-.work-cover img,
-.work-cover video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: grayscale(0.15) contrast(1.05);
-  transition: transform 0.4s ease;
-}
-.work-card:hover .work-cover img {
-  transform: scale(1.03);
 }
 .work-year {
   position: absolute;
@@ -1213,13 +1193,6 @@ const hasContact = computed(() => {
   min-height: 300px;
   background: var(--g-bg-soft);
   border-right: 1px solid var(--g-ink);
-}
-.modal-cover img,
-.modal-cover video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: grayscale(0.15) contrast(1.05);
 }
 .modal-year {
   position: absolute;

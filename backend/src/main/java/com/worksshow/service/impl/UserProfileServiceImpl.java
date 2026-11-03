@@ -177,6 +177,7 @@ public class UserProfileServiceImpl implements UserProfileService {
             work.setCategory(w.getCategory());
             work.setCover(w.getCover());
             work.setVideoUrl(w.getVideoUrl());
+            work.setImages(w.getImages());
             work.setDescription(w.getDescription());
             work.setYear(w.getYear());
             work.setLink(w.getLink());
@@ -271,6 +272,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         dto.setCategory(work.getCategory());
         dto.setCover(work.getCover());
         dto.setVideoUrl(work.getVideoUrl());
+        dto.setImages(work.getImages());
         dto.setDescription(work.getDescription());
         dto.setYear(work.getYear());
         dto.setLink(work.getLink());

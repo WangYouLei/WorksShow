@@ -26,7 +26,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -118,17 +122,24 @@ public class DeploymentServiceImpl extends ServiceImpl<DeploymentMapper, Deploym
             projectName = projectName.trim().toLowerCase(java.util.Locale.ROOT);
         }
 
-        // 4. 先创建部署记录(状态=部署中),即使后续失败也有据可查
-        Deployment deployment = new Deployment();
-        deployment.setUserId(userId);
-        deployment.setPortfolioId(portfolio.getId());
-        deployment.setTemplateId(portfolio.getTemplateId());
-        deployment.setProjectName(projectName);
-        deployment.setDeployType(local ? Deployment.DEPLOY_TYPE_LOCAL : Deployment.DEPLOY_TYPE_EDGEONE);
-        deployment.setDescription(dto.getDescription());
-        deployment.setStatus(Deployment.STATUS_DEPLOYING);
-        save(deployment);
-        log.info("创建部署记录: id={}, userId={}, portfolioId={}, deployType={}",
+        // 4. 保存部署记录(状态=部署中),即使后续失败也有据可查。
+        //    EdgeOne 同名项目重复部署会覆盖原站点,故同一项目名只保留一条记录。
+        Deployment deployment;
+        if (local) {
+            deployment = new Deployment();
+            deployment.setUserId(userId);
+            deployment.setPortfolioId(portfolio.getId());
+            deployment.setTemplateId(portfolio.getTemplateId());
+            deployment.setProjectName(projectName);
+            deployment.setDeployType(Deployment.DEPLOY_TYPE_LOCAL);
+            deployment.setDescription(dto.getDescription());
+            deployment.setStatus(Deployment.STATUS_DEPLOYING);
+            save(deployment);
+        } else {
+            deployment = upsertEdgeOneDeployment(userId, portfolio.getId(), portfolio.getTemplateId(),
+                    projectName, dto.getDescription());
+        }
+        log.info("保存部署记录: id={}, userId={}, portfolioId={}, deployType={}",
                 deployment.getId(), userId, portfolio.getId(), deployment.getDeployType());
 
         // 5. 执行部署
@@ -182,6 +193,50 @@ public class DeploymentServiceImpl extends ServiceImpl<DeploymentMapper, Deploym
     }
 
     /**
+     * 复用或创建 EdgeOne 部署记录。
+     * <p>
+     * EdgeOne 侧同一项目名即一个站点,重复部署只会覆盖原内容,
+     * 因此本地也只为该项目名保留一条记录(历史重复记录一并清理)。
+     */
+    private Deployment upsertEdgeOneDeployment(Long userId, Long portfolioId, String templateId,
+                                              String projectName, String description) {
+        // 并发同名部署先查后插会产生重复记录,串行化该用户+项目的写入(单实例部署足够)
+        synchronized (("edgeone-deploy:" + userId + ":" + projectName).intern()) {
+            Deployment record = lambdaQuery()
+                    .eq(Deployment::getUserId, userId)
+                    .eq(Deployment::getDeployType, Deployment.DEPLOY_TYPE_EDGEONE)
+                    .eq(Deployment::getProjectName, projectName)
+                    .orderByDesc(Deployment::getCreateTime)
+                    .last("LIMIT 1")
+                    .one();
+            boolean existing = record != null;
+            if (!existing) {
+                record = new Deployment();
+                record.setUserId(userId);
+                record.setProjectName(projectName);
+                record.setDeployType(Deployment.DEPLOY_TYPE_EDGEONE);
+            }
+            record.setPortfolioId(portfolioId);
+            record.setTemplateId(templateId);
+            record.setDescription(description);
+            record.setStatus(Deployment.STATUS_DEPLOYING);
+            // 记录代表该项目最近一次部署,列表按创建时间倒序展示
+            record.setCreateTime(LocalDateTime.now());
+            saveOrUpdate(record);
+
+            if (existing) {
+                // 清理历史遗留的同名重复记录
+                remove(new LambdaQueryWrapper<Deployment>()
+                        .eq(Deployment::getUserId, userId)
+                        .eq(Deployment::getDeployType, Deployment.DEPLOY_TYPE_EDGEONE)
+                        .eq(Deployment::getProjectName, projectName)
+                        .ne(Deployment::getId, record.getId()));
+            }
+            return record;
+        }
+    }
+
+    /**
      * 查找该简历最近一次成功的本地部署 key 以复用(链接不变);
      * 无则生成新 key(32位随机hex)。
      */
@@ -214,6 +269,9 @@ public class DeploymentServiceImpl extends ServiceImpl<DeploymentMapper, Deploym
 
     /**
      * 获取当前用户的部署记录列表
+     * <p>
+     * EdgeOne 同一项目名即一个站点,列表只展示该项目最近一条记录,
+     * 兼容历史遗留的同名重复记录。
      */
     @Override
     public List<DeploymentVO> listMine() {
@@ -221,7 +279,12 @@ public class DeploymentServiceImpl extends ServiceImpl<DeploymentMapper, Deploym
         List<Deployment> list = list(new LambdaQueryWrapper<Deployment>()
                 .eq(Deployment::getUserId, userId)
                 .orderByDesc(Deployment::getCreateTime));
-        return list.stream().map(this::toVO).toList();
+        Set<String> seenEdgeOneProjects = new HashSet<>();
+        return list.stream()
+                .filter(d -> !Deployment.DEPLOY_TYPE_EDGEONE.equals(d.getDeployType())
+                        || d.getProjectName() == null || d.getProjectName().isBlank()
+                        || seenEdgeOneProjects.add(d.getProjectName().trim().toLowerCase(Locale.ROOT)))
+                .map(this::toVO).toList();
     }
 
     /**
@@ -257,17 +320,10 @@ public class DeploymentServiceImpl extends ServiceImpl<DeploymentMapper, Deploym
         String projectName = source.getProjectName().trim().toLowerCase(java.util.Locale.ROOT);
         DecryptedEdgeOneConfig config = edgeoneConfigService.getDecryptedConfig();
 
-        // 先创建下线部署记录(保留历史追溯)
-        Deployment record = new Deployment();
-        record.setUserId(source.getUserId());
-        record.setPortfolioId(source.getPortfolioId());
-        record.setTemplateId(source.getTemplateId());
-        record.setProjectName(projectName);
-        record.setDeployType(Deployment.DEPLOY_TYPE_EDGEONE);
-        record.setDescription("站点下线(覆盖原内容)");
-        record.setStatus(Deployment.STATUS_DEPLOYING);
-        save(record);
-        log.info("创建下线部署记录: id={}, sourceId={}, projectName={}",
+        // 复用该项目名的部署记录(同名项目只保留一条记录),状态置为部署中
+        Deployment record = upsertEdgeOneDeployment(source.getUserId(), source.getPortfolioId(),
+                source.getTemplateId(), projectName, "站点下线(覆盖原内容)");
+        log.info("下线部署记录: id={}, sourceId={}, projectName={}",
                 record.getId(), source.getId(), projectName);
 
         EdgeOneDeployResult result = edgeOnePagesClient.deploy(

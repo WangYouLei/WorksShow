@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { safeUrl } from '@/utils/safeUrl'
+import WorkMedia from '@/components/WorkMedia.vue'
 import { X, ArrowUpRight, Mail, MapPin, Github } from 'lucide-vue-next'
 import type { PortfolioData } from '../types'
 import { VIRUS_ENGINE } from './engine'
@@ -206,9 +207,8 @@ onBeforeUnmount(() => {
         <button class="modal-close" aria-label="关闭" type="button">
           <X :size="20" :stroke-width="1.75" />
         </button>
-        <div v-if="w.cover || w.videoUrl" class="vi-modal-cover">
-          <video v-if="w.videoUrl" :src="w.videoUrl" controls playsinline preload="metadata"></video>
-          <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
+        <div v-if="w.cover || w.videoUrl || w.images?.length" class="vi-modal-cover">
+          <WorkMedia :work="w" />
         </div>
         <div class="vi-modal-body">
           <span class="vi-modal-cat">{{ w.category }} · {{ w.year }}</span>
@@ -779,12 +779,6 @@ onBeforeUnmount(() => {
   min-height: 260px;
   overflow: hidden;
   background: rgba(77, 214, 189, 0.05);
-}
-.vi-modal-cover img,
-.vi-modal-cover video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 .vi-modal-body {
   display: flex;

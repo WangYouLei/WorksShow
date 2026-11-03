@@ -150,6 +150,7 @@ CREATE TABLE IF NOT EXISTS `user_work` (
     `category`        VARCHAR(100)          DEFAULT NULL               COMMENT '分类(如"AI产品")',
     `cover`           VARCHAR(255)          DEFAULT NULL               COMMENT '封面图URL',
     `video_url`       VARCHAR(500)          DEFAULT NULL               COMMENT '作品视频URL(OSS直传,有视频时模板渲染video标签)',
+    `images`          JSON                  DEFAULT NULL               COMMENT '作品图集URL数组 ["https://...","https://..."](详情弹窗图集浏览,可多张)',
     `description`     TEXT                  DEFAULT NULL               COMMENT '作品描述',
     `year`            VARCHAR(20)           DEFAULT NULL               COMMENT '年份',
     `link`            VARCHAR(500)          DEFAULT NULL               COMMENT '外链URL',
@@ -509,5 +510,21 @@ CREATE TABLE IF NOT EXISTS `ai_template` (
 
 ALTER TABLE `user_work`
     ADD COLUMN `video_url` VARCHAR(500) DEFAULT NULL COMMENT '作品视频URL(OSS直传,有视频时模板渲染video标签)' AFTER `cover`;
+
+*/ -- 迁移块结束
+
+-- ============================================================
+-- 数据库迁移: user_work 表新增图集字段(仅旧库执行,一次性迁移)
+-- ------------------------------------------------------------
+-- 说明:
+--   支持作品图集(OSS 直传 URL 数组,详情弹窗以图集形式浏览,可多张)。
+--   - 全新库: 上方 CREATE TABLE 已含 images 列,此块保持注释,跳过
+--   - 旧库:   取消下方 /* */ 注释后执行(列已存在会报错,按需跳过)
+-- ============================================================
+
+/* 旧库迁移语句(全新库默认整块注释,旧库取消此块注释后执行;新库执行会因列已存在而报错)
+
+ALTER TABLE `user_work`
+    ADD COLUMN `images` JSON DEFAULT NULL COMMENT '作品图集URL数组 ["https://...","https://..."](详情弹窗图集浏览,可多张)' AFTER `video_url`;
 
 */ -- 迁移块结束

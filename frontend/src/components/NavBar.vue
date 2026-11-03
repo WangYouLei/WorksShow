@@ -5,26 +5,41 @@ import { usePortfolio } from '@/composables/usePortfolio'
 import { profile as defaultProfile } from '@/data/profile'
 
 const portfolio = usePortfolio()
-const profile = portfolio?.profile ?? defaultProfile
+// computed 保证服务端档案异步加载替换数据后导航同步更新
+const profile = computed(() => portfolio?.profile ?? defaultProfile)
 
 const scrolled = ref(false)
 const menuOpen = ref(false)
 
 // 区块渲染开关：对应数据为空时不渲染导航入口（导出 HTML 同步生效）
-const hasAbout = Boolean(
-  profile.bio || profile.availability || profile.location || profile.stats?.length,
+const hasAbout = computed(
+  () =>
+    Boolean(
+      profile.value.bio ||
+        profile.value.availability ||
+        profile.value.location ||
+        profile.value.stats?.length,
+    ),
 )
-const hasWorks = Boolean(portfolio?.works?.length)
-const hasSkills = Boolean(portfolio?.skills?.length || portfolio?.experiences?.length)
-const hasContact = Boolean(
-  profile.email || profile.location || profile.availability || profile.socials?.length,
+const hasWorks = computed(() => Boolean(portfolio?.works?.length))
+const hasSkills = computed(() =>
+  Boolean(portfolio?.skills?.length || portfolio?.experiences?.length),
+)
+const hasContact = computed(
+  () =>
+    Boolean(
+      profile.value.email ||
+        profile.value.location ||
+        profile.value.availability ||
+        profile.value.socials?.length,
+    ),
 )
 
 const navItems = computed(() => {
   const items: Array<{ label: string; href: string }> = [{ label: '首页', href: '#home' }]
-  if (hasAbout) items.push({ label: '关于', href: '#about' })
-  if (hasWorks) items.push({ label: '作品', href: '#works' })
-  if (hasSkills) items.push({ label: '经历', href: '#skills' })
+  if (hasAbout.value) items.push({ label: '关于', href: '#about' })
+  if (hasWorks.value) items.push({ label: '作品', href: '#works' })
+  if (hasSkills.value) items.push({ label: '经历', href: '#skills' })
   return items
 })
 

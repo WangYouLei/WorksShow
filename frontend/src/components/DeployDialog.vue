@@ -6,6 +6,7 @@ import { useThemeStore } from '@/composables/useThemeStore'
 import { getTemplateExporter } from '@/templates/registry'
 import {
   deploy,
+  listDeployments,
   DEPLOY_STATUS,
   type DeploymentVO,
   type DeployType,
@@ -29,10 +30,26 @@ const result = ref<DeploymentVO | null>(null)
 const error = ref('')
 const copied = ref(false)
 const deployType = ref<DeployType>('edgeone')
+/** 已部署过的 EdgeOne 项目名(小写),用于提示同名项目会覆盖原部署 */
+const deployedProjectNames = ref<Set<string>>(new Set())
 const form = reactive({
   projectName: '',
   description: '',
 })
+
+/** 实际生效的 EdgeOne 项目名(留空时使用配置中的默认项目名) */
+const effectiveProjectName = computed(() => {
+  const name = form.projectName.trim() || (config.value?.projectName ?? '').trim()
+  return deployType.value === 'edgeone' ? name.toLowerCase() : name
+})
+
+/** EdgeOne 同名项目已部署:再次部署会覆盖原站点内容 */
+const willOverwrite = computed(
+  () =>
+    deployType.value === 'edgeone' &&
+    !!effectiveProjectName.value &&
+    deployedProjectNames.value.has(effectiveProjectName.value),
+)
 
 // 状态派生:四个互斥视图
 const showForm = computed(() => !loading.value && !deploying.value && !result.value && !error.value)
@@ -60,8 +77,14 @@ const loadConfig = async () => {
   loading.value = true
   error.value = ''
   try {
-    config.value = await getEdgeOneConfig()
+    const [cfg, records] = await Promise.all([getEdgeOneConfig(), listDeployments()])
+    config.value = cfg
     form.projectName = config.value?.projectName ?? ''
+    deployedProjectNames.value = new Set(
+      records
+        .filter((r) => r.deployType === 'edgeone' && r.projectName)
+        .map((r) => r.projectName.trim().toLowerCase()),
+    )
   } catch (e) {
     error.value = (e as Error).message
   } finally {
@@ -247,6 +270,9 @@ watch(
                 class="field-input"
                 :placeholder="deployType === 'local' ? '如:我的求职简历' : '如:my-resume(小写字母/数字/连字符)'"
               />
+              <span v-if="willOverwrite" class="field-hint warn">
+                项目名「{{ effectiveProjectName }}」已部署过,继续部署将覆盖原站点内容(访问链接不变)
+              </span>
             </label>
             <label class="field">
               <span class="field-label">部署描述(可选)</span>
@@ -487,6 +513,13 @@ watch(
 .field-label {
   font-size: 13px;
   color: rgba(245, 241, 232, 0.7);
+}
+.field-hint {
+  font-size: 12px;
+  line-height: 1.6;
+}
+.field-hint.warn {
+  color: #d9a441;
 }
 .field-input {
   padding: 10px 12px;

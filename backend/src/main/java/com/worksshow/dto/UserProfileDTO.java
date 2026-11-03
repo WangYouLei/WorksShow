@@ -82,6 +82,8 @@ public class UserProfileDTO {
         private String cover;
         /** 作品视频URL(OSS直传,有视频时模板渲染video标签) */
         private String videoUrl;
+        /** 作品图集URL列表(OSS直传,详情弹窗以图集形式浏览,可多张) */
+        private List<String> images;
         /** 作品描述 */
         private String description;
         /** 年份 */

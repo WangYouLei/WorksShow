@@ -1,3 +1,5 @@
+import { MEDIA_CAROUSEL_JS } from '../mediaCarousel'
+
 /** 导出页面运行时脚本（原生 JS，还原交互：导航栏滚动、渐入、作品弹窗、回到顶部） */
 export const RUNTIME_JS = `
 (function(){
@@ -51,5 +53,8 @@ export const RUNTIME_JS = `
   // 回到顶部
   var backTop = document.querySelector('.back-top');
   if (backTop) backTop.addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+  // 作品卡片媒体轮播
+  ${MEDIA_CAROUSEL_JS}
 })();
 `

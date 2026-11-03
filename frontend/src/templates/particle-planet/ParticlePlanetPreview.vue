@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { safeUrl } from '@/utils/safeUrl'
+import WorkMedia from '@/components/WorkMedia.vue'
 import { X, ArrowUpRight, Mail, MapPin, Clock, Github } from 'lucide-vue-next'
 import type { PortfolioData } from '../types'
 import { PP_ENGINE } from './engine'
@@ -106,9 +107,8 @@ onBeforeUnmount(() => {
             tabindex="0"
             :aria-label="w.title"
           >
-            <span v-if="w.cover || w.videoUrl" class="pp-work-cover">
-              <video v-if="w.videoUrl" :src="w.videoUrl" muted playsinline preload="metadata"></video>
-              <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
+            <span v-if="w.cover || w.videoUrl || w.images?.length" class="pp-work-cover">
+              <WorkMedia :work="w" />
             </span>
             <span class="pp-work-info">
               <strong>{{ w.title }}</strong>
@@ -176,9 +176,8 @@ onBeforeUnmount(() => {
         <button class="modal-close" aria-label="关闭" type="button">
           <X :size="20" :stroke-width="1.75" />
         </button>
-        <div v-if="w.cover || w.videoUrl" class="pp-modal-cover">
-          <video v-if="w.videoUrl" :src="w.videoUrl" controls playsinline preload="metadata"></video>
-          <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
+        <div v-if="w.cover || w.videoUrl || w.images?.length" class="pp-modal-cover">
+          <WorkMedia :work="w" />
         </div>
         <div class="pp-modal-body">
           <span class="pp-modal-cat">{{ w.category }} · {{ w.year }}</span>
@@ -519,12 +518,6 @@ onBeforeUnmount(() => {
   overflow: hidden;
   background: rgba(255, 255, 255, 0.06);
 }
-.pp-work-cover img,
-.pp-work-cover video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
 .pp-work-info {
   flex: 1;
   min-width: 0;
@@ -738,12 +731,6 @@ onBeforeUnmount(() => {
   min-height: 260px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.04);
-}
-.pp-modal-cover img,
-.pp-modal-cover video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 .pp-modal-body {
   padding: 32px 32px 28px;

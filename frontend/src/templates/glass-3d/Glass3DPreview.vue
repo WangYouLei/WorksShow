@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { safeUrl } from '@/utils/safeUrl'
+import WorkMedia from '@/components/WorkMedia.vue'
 import {
   X,
   ArrowUpRight,
@@ -348,9 +349,8 @@ onBeforeUnmount(() => {
               tabindex="0"
               :aria-label="featured.title"
             >
-              <div v-if="featured.cover || featured.videoUrl" class="g3-work-cover g3-work-cover-featured">
-                <video v-if="featured.videoUrl" :src="featured.videoUrl" controls playsinline preload="metadata" @click.stop></video>
-                <img v-else :src="featured.cover" :alt="featured.title" loading="lazy" />
+              <div v-if="featured.cover || featured.videoUrl || featured.images?.length" class="g3-work-cover g3-work-cover-featured">
+                <WorkMedia :work="featured" />
                 <span class="g3-work-cat">{{ featured.category }}</span>
                 <span class="g3-work-year">{{ featured.year }}</span>
               </div>
@@ -383,9 +383,8 @@ onBeforeUnmount(() => {
               tabindex="0"
               :aria-label="w.title"
             >
-              <div v-if="w.cover || w.videoUrl" class="g3-work-cover">
-                <video v-if="w.videoUrl" :src="w.videoUrl" controls playsinline preload="metadata" @click.stop></video>
-                <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
+              <div v-if="w.cover || w.videoUrl || w.images?.length" class="g3-work-cover">
+                <WorkMedia :work="w" />
                 <span class="g3-work-cat">{{ w.category }}</span>
                 <span class="g3-work-year">{{ w.year }}</span>
               </div>
@@ -550,9 +549,8 @@ onBeforeUnmount(() => {
         <button class="modal-close" aria-label="关闭" type="button">
           <X :size="20" :stroke-width="1.75" />
         </button>
-        <div v-if="w.cover || w.videoUrl" class="g3-modal-cover">
-          <video v-if="w.videoUrl" :src="w.videoUrl" controls playsinline preload="metadata"></video>
-          <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
+        <div v-if="w.cover || w.videoUrl || w.images?.length" class="g3-modal-cover">
+          <WorkMedia :work="w" />
           <span class="g3-modal-year">{{ w.year }}</span>
         </div>
         <div class="g3-modal-body">
@@ -1197,16 +1195,6 @@ main,
   overflow: hidden;
   background: rgba(238, 240, 255, 0.6);
 }
-.g3-work-cover img,
-.g3-work-cover video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.6s ease;
-}
-.g3-work:hover .g3-work-cover img {
-  transform: scale(1.05);
-}
 .g3-work-cat {
   position: absolute;
   top: 12px;
@@ -1727,12 +1715,6 @@ main,
   overflow: hidden;
   min-height: 300px;
   background: rgba(238, 240, 255, 0.8);
-}
-.g3-modal-cover img,
-.g3-modal-cover video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 .g3-modal-year {
   position: absolute;

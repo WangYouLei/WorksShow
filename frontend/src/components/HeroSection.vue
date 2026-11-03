@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { usePortfolio } from '@/composables/usePortfolio'
 import { profile as defaultProfile } from '@/data/profile'
 
 const portfolio = usePortfolio()
-const profile = portfolio?.profile ?? defaultProfile
+// computed 保证服务端档案异步加载替换 data.profile 后预览同步更新
+const profile = computed(() => portfolio?.profile ?? defaultProfile)
 
 const scrollToAbout = () => {
   document.querySelector('#about')?.scrollIntoView({ behavior: 'smooth' })
@@ -18,12 +20,24 @@ const scrollToContact = () => {
 }
 
 // 区块渲染开关：目标区块数据为空时不渲染对应入口（导出 HTML 同步生效）
-const hasWorks = Boolean(portfolio?.works?.length)
-const hasAbout = Boolean(
-  profile.bio || profile.availability || profile.location || profile.stats?.length,
+const hasWorks = computed(() => Boolean(portfolio?.works?.length))
+const hasAbout = computed(
+  () =>
+    Boolean(
+      profile.value.bio ||
+        profile.value.availability ||
+        profile.value.location ||
+        profile.value.stats?.length,
+    ),
 )
-const hasContact = Boolean(
-  profile.email || profile.location || profile.availability || profile.socials?.length,
+const hasContact = computed(
+  () =>
+    Boolean(
+      profile.value.email ||
+        profile.value.location ||
+        profile.value.availability ||
+        profile.value.socials?.length,
+    ),
 )
 </script>
 

@@ -192,3 +192,66 @@
   font-size: 13px;
   color: rgba(245, 241, 232, 0.3);
 }
+
+/* —— 作品图集多图编辑(缩略图墙 + 添加/删除) —— */
+.ef-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ef-gallery-item {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border: 1px solid rgba(212, 165, 116, 0.2);
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+}
+.ef-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ef-gallery-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  line-height: 1;
+  color: #f5f1e8;
+  background: rgba(10, 10, 15, 0.75);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.ef-gallery-remove:hover {
+  color: #ff8a73;
+}
+.ef-gallery-add {
+  width: 72px;
+  height: 72px;
+  font-size: 12px;
+  color: rgba(212, 165, 116, 0.8);
+  background: rgba(212, 165, 116, 0.06);
+  border: 1px dashed rgba(212, 165, 116, 0.35);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.ef-gallery-add:hover:not(:disabled) {
+  background: rgba(212, 165, 116, 0.15);
+}
+.ef-gallery-add:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.ef-gallery-error {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #c8553d;
+}

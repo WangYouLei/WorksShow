@@ -1,14 +1,21 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { MapPin, Mail } from 'lucide-vue-next'
 import { usePortfolio } from '@/composables/usePortfolio'
 import { profile as defaultProfile } from '@/data/profile'
 
 const portfolio = usePortfolio()
-const profile = portfolio?.profile ?? defaultProfile
+// computed 保证服务端档案异步加载替换 data.profile 后预览同步更新
+const profile = computed(() => portfolio?.profile ?? defaultProfile)
 
 // 区块渲染开关：对应数据为空时不渲染区块与导航入口（导出 HTML 同步生效）
-const hasAbout = Boolean(
-  profile.bio || profile.availability || profile.location || profile.stats?.length,
+const hasAbout = computed(() =>
+  Boolean(
+    profile.value.bio ||
+      profile.value.availability ||
+      profile.value.location ||
+      profile.value.stats?.length,
+  ),
 )
 </script>
 

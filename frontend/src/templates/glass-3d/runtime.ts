@@ -1,3 +1,5 @@
+import { MEDIA_CAROUSEL_JS } from '../mediaCarousel'
+
 /** 导出页面运行时脚本（原生 JS，还原交互：导航栏滚动、渐入、Hero 3D 视差、卡片 3D 倾斜、作品弹窗、回到顶部） */
 export const RUNTIME_JS = `
 (function(){
@@ -163,5 +165,8 @@ export const RUNTIME_JS = `
   // 回到顶部
   var backTop = document.querySelector('.g3-backtop');
   if (backTop) backTop.addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+
+  // 作品卡片媒体轮播
+  ${MEDIA_CAROUSEL_JS}
 })();
 `

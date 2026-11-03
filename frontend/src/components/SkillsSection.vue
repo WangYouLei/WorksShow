@@ -1,12 +1,14 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Briefcase, GraduationCap } from 'lucide-vue-next'
 import { usePortfolio } from '@/composables/usePortfolio'
 import { skills as defaultSkills } from '@/data/skills'
 import { experiences as defaultExperiences } from '@/data/experiences'
 
 const portfolio = usePortfolio()
-const skills = portfolio?.skills ?? defaultSkills
-const experiences = portfolio?.experiences ?? defaultExperiences
+// computed 保证服务端档案异步加载替换数组后预览同步更新
+const skills = computed(() => portfolio?.skills ?? defaultSkills)
+const experiences = computed(() => portfolio?.experiences ?? defaultExperiences)
 </script>
 
 <template>

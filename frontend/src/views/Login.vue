@@ -161,12 +161,12 @@ onUnmounted(() => {
 
         <form class="auth-form" @submit.prevent="onSubmit">
           <label class="field">
-            <span class="field-label">手机号或邮箱</span>
+            <span class="field-label">邮箱</span>
             <input
               v-model="form.account"
               type="text"
               class="field-input"
-              placeholder="请输入手机号或邮箱"
+              placeholder="请输入邮箱"
               autocomplete="username"
             />
           </label>

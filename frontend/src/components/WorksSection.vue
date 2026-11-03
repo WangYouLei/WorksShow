@@ -1,11 +1,15 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Work } from '@/data/types'
 import { ArrowUpRight } from 'lucide-vue-next'
 import { usePortfolio } from '@/composables/usePortfolio'
 import { works as defaultWorks } from '@/data/works'
+import WorkMedia from '@/components/WorkMedia.vue'
 
 const portfolio = usePortfolio()
-const works = portfolio?.works ?? defaultWorks
+// computed 保证服务端档案异步加载替换 data.works 后预览同步更新
+// (一次性解构会持有旧数组引用,导致预览停留在模板默认演示数据)
+const works = computed(() => portfolio?.works ?? defaultWorks)
 
 const emit = defineEmits<{ select: [work: Work] }>()
 </script>
@@ -35,9 +39,9 @@ const emit = defineEmits<{ select: [work: Work] }>()
           :data-work-id="work.id"
           @click="emit('select', work)"
         >
-          <div v-if="work.cover || work.videoUrl" class="work-cover">
-            <video v-if="work.videoUrl" :src="work.videoUrl" controls playsinline preload="metadata" @click.stop></video>
-            <img v-else :src="work.cover" :alt="work.title" loading="lazy" />
+          <div v-if="work.cover || work.videoUrl || work.images?.length" class="work-cover">
+            <WorkMedia :work="work" />
+            <span v-if="(work.images?.length ?? 0) > 1" class="work-img-count font-mono">{{ work.images!.length }} 图</span>
             <span class="work-year font-mono">{{ work.year }}</span>
             <span class="work-arrow">
               <ArrowUpRight :size="20" :stroke-width="1.5" />
@@ -110,18 +114,6 @@ const emit = defineEmits<{ select: [work: Work] }>()
   margin-bottom: 1.25rem;
 }
 
-.work-cover img,
-.work-cover video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.8s var(--ease);
-}
-
-.work-card:hover .work-cover img {
-  transform: scale(1.06);
-}
-
 .work-year {
   position: absolute;
   top: 1rem;
@@ -131,6 +123,20 @@ const emit = defineEmits<{ select: [work: Work] }>()
   color: var(--moon-white);
   background: rgba(10, 10, 15, 0.7);
   padding: 0.375rem 0.75rem;
+  border-radius: var(--radius-sm);
+  backdrop-filter: blur(4px);
+}
+
+/* 图集张数角标(多图作品提示可进入详情滑动浏览) */
+.work-img-count {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  font-size: var(--fs-tiny);
+  letter-spacing: 0.1em;
+  color: var(--moon-white);
+  background: rgba(10, 10, 15, 0.7);
+  padding: 0.3rem 0.6rem;
   border-radius: var(--radius-sm);
   backdrop-filter: blur(4px);
 }

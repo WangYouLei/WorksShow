@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { safeUrl } from '@/utils/safeUrl'
+import WorkMedia from '@/components/WorkMedia.vue'
 import {
   X,
   ArrowUpRight,
@@ -141,9 +142,8 @@ const hasContact = computed(() => {
             tabindex="0"
             :aria-label="featured.title"
           >
-            <div v-if="featured.cover || featured.videoUrl" class="featured-cover">
-              <video v-if="featured.videoUrl" :src="featured.videoUrl" controls playsinline preload="metadata" @click.stop></video>
-              <img v-else :src="featured.cover" :alt="featured.title" loading="lazy" />
+            <div v-if="featured.cover || featured.videoUrl || featured.images?.length" class="featured-cover">
+              <WorkMedia :work="featured" />
               <div class="featured-cover-veil"></div>
               <span class="featured-badge">旗舰作品</span>
             </div>
@@ -173,9 +173,8 @@ const hasContact = computed(() => {
             tabindex="0"
             :aria-label="w.title"
           >
-            <div v-if="w.cover || w.videoUrl" class="small-cover">
-              <video v-if="w.videoUrl" :src="w.videoUrl" controls playsinline preload="metadata" @click.stop></video>
-              <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
+            <div v-if="w.cover || w.videoUrl || w.images?.length" class="small-cover">
+              <WorkMedia :work="w" />
               <div class="small-cover-veil"></div>
               <span class="small-year">{{ w.year }}</span>
             </div>
@@ -333,9 +332,8 @@ const hasContact = computed(() => {
         <button class="modal-close" aria-label="关闭" type="button">
           <X :size="20" :stroke-width="1.75" />
         </button>
-        <div v-if="w.cover || w.videoUrl" class="modal-cover">
-          <video v-if="w.videoUrl" :src="w.videoUrl" controls playsinline preload="metadata"></video>
-          <img v-else :src="w.cover" :alt="w.title" loading="lazy" />
+        <div v-if="w.cover || w.videoUrl || w.images?.length" class="modal-cover">
+          <WorkMedia :work="w" />
           <span class="modal-year">{{ w.year }}</span>
         </div>
         <div class="modal-body">
@@ -948,16 +946,6 @@ main,
   overflow: hidden;
   background: var(--a-surface);
 }
-.featured-cover img,
-.featured-cover video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.6s ease;
-}
-.bento-featured:hover .featured-cover img {
-  transform: scale(1.04);
-}
 .featured-cover-veil {
   position: absolute;
   inset: 0;
@@ -1053,16 +1041,6 @@ main,
   aspect-ratio: 16 / 9;
   overflow: hidden;
   background: var(--a-surface);
-}
-.small-cover img,
-.small-cover video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.6s ease;
-}
-.bento-small:hover .small-cover img {
-  transform: scale(1.06);
 }
 .small-cover-veil {
   position: absolute;
@@ -1571,12 +1549,6 @@ main,
   overflow: hidden;
   min-height: 320px;
   background: var(--a-bg-soft);
-}
-.modal-cover img,
-.modal-cover video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 .modal-year {
   position: absolute;

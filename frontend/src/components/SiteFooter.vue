@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { ArrowUp } from 'lucide-vue-next'
 import { usePortfolio } from '@/composables/usePortfolio'
 import { profile as defaultProfile } from '@/data/profile'
 
 const portfolio = usePortfolio()
-const profile = portfolio?.profile ?? defaultProfile
+// computed 保证服务端档案异步加载替换 data.profile 后预览同步更新
+const profile = computed(() => portfolio?.profile ?? defaultProfile)
 
 const backToTop = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' })

@@ -22,6 +22,8 @@ export interface Work {
   cover: string
   /** 作品视频URL(OSS直传,有视频时模板渲染video标签) */
   videoUrl?: string
+  /** 作品图集URL列表(OSS直传,详情弹窗以图集形式浏览,可多张) */
+  images?: string[]
   description: string
   year: string
   link?: string

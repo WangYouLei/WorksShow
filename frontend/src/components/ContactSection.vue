@@ -1,15 +1,22 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Github, Mail, ArrowUpRight } from 'lucide-vue-next'
 import { usePortfolio } from '@/composables/usePortfolio'
 import { profile as defaultProfile } from '@/data/profile'
 import { safeUrl } from '@/utils/safeUrl'
 
 const portfolio = usePortfolio()
-const profile = portfolio?.profile ?? defaultProfile
+// computed 保证服务端档案异步加载替换 data.profile 后预览同步更新
+const profile = computed(() => portfolio?.profile ?? defaultProfile)
 
 // 区块渲染开关：联系信息全为空时不渲染区块（导出 HTML 同步生效）
-const hasContact = Boolean(
-  profile.email || profile.location || profile.availability || profile.socials?.length,
+const hasContact = computed(() =>
+  Boolean(
+    profile.value.email ||
+      profile.value.location ||
+      profile.value.availability ||
+      profile.value.socials?.length,
+  ),
 )
 </script>
 

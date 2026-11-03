@@ -86,8 +86,13 @@ function normalizeUserProfile(backend: BackendUserProfile, fallback: Profile): P
       stats: p.stats ?? fallback.stats,
       socials: p.socials ?? fallback.socials,
     },
-    // tags/items 为后端 JSON 列,可能为 null,兜底为数组避免模板中 .slice 崩溃
-    works: (backend.works || []).map((w) => ({ ...w, id: String(w.id ?? ''), tags: w.tags ?? [] })),
+    // tags/items/images 为后端 JSON 列,可能为 null,兜底为数组避免模板中 .slice 崩溃
+    works: (backend.works || []).map((w) => ({
+      ...w,
+      id: String(w.id ?? ''),
+      tags: w.tags ?? [],
+      images: w.images ?? [],
+    })),
     experiences: (backend.experiences || []).map((e) => ({ ...e, id: String(e.id ?? '') })),
     skills: (backend.skills || []).map((s) => ({ ...s, id: String(s.id ?? ''), items: s.items ?? [] })),
   }

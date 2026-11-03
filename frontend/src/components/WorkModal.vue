@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { watch, onUnmounted } from 'vue'
-import { X, ArrowUpRight } from 'lucide-vue-next'
+import { computed, watch, ref, nextTick, onUnmounted } from 'vue'
+import { X, ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import type { Work } from '@/data/types'
 import { safeUrl } from '@/utils/safeUrl'
 
@@ -23,6 +23,8 @@ watch(
       document.body.style.overflow = ''
       window.removeEventListener('keydown', onKeydown)
     }
+    // 切换作品时图集回到第一张
+    activeIndex.value = 0
   },
 )
 
@@ -30,6 +32,40 @@ onUnmounted(() => {
   document.body.style.overflow = ''
   window.removeEventListener('keydown', onKeydown)
 })
+
+// —— 图集浏览:优先 images,无图集回落单张封面;视频保持单个,置于图集上方 ——
+/** 可浏览的图片列表(过滤空值) */
+const gallery = computed(() => {
+  const imgs = props.work?.images?.filter(Boolean) ?? []
+  if (imgs.length) return imgs
+  return props.work?.cover ? [props.work.cover] : []
+})
+/** 当前展示的图片下标 */
+const activeIndex = ref(0)
+/** 缩略图元素引用(激活项滚动到可见区) */
+const thumbRefs = ref<HTMLElement[]>([])
+
+const setActive = async (i: number) => {
+  activeIndex.value = i
+  await nextTick()
+  thumbRefs.value[i]?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+}
+
+/** 循环切换上一张/下一张 */
+const step = (dir: 1 | -1) => {
+  const n = gallery.value.length
+  if (n) setActive((activeIndex.value + dir + n) % n)
+}
+
+// 触屏左右滑动切换(位移超过 40px 判定为滑动)
+let touchX = 0
+const onTouchStart = (e: TouchEvent) => {
+  touchX = e.touches[0].clientX
+}
+const onTouchEnd = (e: TouchEvent) => {
+  const dx = e.changedTouches[0].clientX - touchX
+  if (Math.abs(dx) > 40) step(dx < 0 ? 1 : -1)
+}
 </script>
 
 <template>
@@ -40,9 +76,44 @@ onUnmounted(() => {
           <X :size="20" :stroke-width="1.5" />
         </button>
 
-        <div v-if="work.cover || work.videoUrl" class="modal-cover">
+        <div
+          v-if="work.videoUrl || gallery.length"
+          class="modal-cover"
+          :class="{ 'has-gallery': gallery.length }"
+        >
           <video v-if="work.videoUrl" :src="work.videoUrl" controls playsinline preload="metadata"></video>
-          <img v-else :src="work.cover" :alt="work.title" loading="lazy" />
+          <div v-if="gallery.length" class="modal-gallery" data-gallery>
+            <div
+              class="gallery-stage"
+              @touchstart.passive="onTouchStart"
+              @touchend.passive="onTouchEnd"
+            >
+              <img class="gallery-main" :src="gallery[activeIndex]" :alt="work.title" />
+              <template v-if="gallery.length > 1">
+                <button class="gallery-arrow gallery-prev" type="button" aria-label="上一张" @click="step(-1)">
+                  <ChevronLeft :size="18" :stroke-width="1.5" />
+                </button>
+                <button class="gallery-arrow gallery-next" type="button" aria-label="下一张" @click="step(1)">
+                  <ChevronRight :size="18" :stroke-width="1.5" />
+                </button>
+                <span class="gallery-counter font-mono">{{ activeIndex + 1 }} / {{ gallery.length }}</span>
+              </template>
+            </div>
+            <div v-if="gallery.length > 1" class="gallery-thumbs">
+              <button
+                v-for="(img, gi) in gallery"
+                :key="img + gi"
+                :ref="(el) => { if (el) thumbRefs[gi] = el as HTMLElement }"
+                class="gallery-thumb"
+                :class="{ 'is-active': gi === activeIndex }"
+                type="button"
+                :data-index="gi"
+                @click="setActive(gi)"
+              >
+                <img :src="img" alt="" loading="lazy" />
+              </button>
+            </div>
+          </div>
           <span class="modal-year">{{ work.year }}</span>
         </div>
 
@@ -123,13 +194,129 @@ onUnmounted(() => {
 
 .modal-cover {
   position: relative;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   min-height: 320px;
   background: var(--ink-soft);
 }
 
-.modal-cover img,
-.modal-cover video {
+/* 仅视频时独占整列;与图集并存时限制高度把剩余空间留给图集 */
+.modal-cover > video {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  object-fit: cover;
+}
+.modal-cover.has-gallery > video {
+  flex: 0 0 auto;
+  max-height: 45%;
+}
+
+/* —— 图集:主图舞台 + 可滑动缩略图条 —— */
+.modal-gallery {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.gallery-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.gallery-main {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.gallery-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--text);
+  background: rgba(10, 10, 15, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all var(--dur) var(--ease);
+}
+
+.gallery-arrow:hover {
+  color: var(--ink-black);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.gallery-prev {
+  left: 0.75rem;
+}
+
+.gallery-next {
+  right: 0.75rem;
+}
+
+.gallery-counter {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  font-size: var(--fs-tiny);
+  letter-spacing: 0.1em;
+  color: var(--moon-white);
+  background: rgba(10, 10, 15, 0.7);
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-sm);
+  backdrop-filter: blur(4px);
+}
+
+.gallery-thumbs {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+}
+
+.gallery-thumb {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 44px;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  opacity: 0.55;
+  background: none;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  scroll-snap-align: start;
+  transition: all var(--dur) var(--ease);
+}
+
+.gallery-thumb:hover {
+  opacity: 0.85;
+}
+
+.gallery-thumb.is-active {
+  opacity: 1;
+  border-color: var(--accent);
+}
+
+.gallery-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -137,8 +324,9 @@ onUnmounted(() => {
 
 .modal-year {
   position: absolute;
-  bottom: 1rem;
+  top: 1rem;
   left: 1rem;
+  z-index: 1;
   font-family: var(--font-mono);
   font-size: var(--fs-tiny);
   letter-spacing: 0.15em;
@@ -233,7 +421,17 @@ onUnmounted(() => {
 
   .modal-cover {
     min-height: 220px;
-    max-height: 240px;
+    max-height: 320px;
+  }
+
+  .modal-cover > video {
+    flex: 0 0 auto;
+    max-height: 45%;
+  }
+
+  .gallery-thumb {
+    width: 52px;
+    height: 38px;
   }
 
   .modal-body {

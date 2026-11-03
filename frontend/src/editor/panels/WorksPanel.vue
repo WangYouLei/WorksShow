@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { usePortfolioStore } from '@/composables/usePortfolioStore'
 import OssUploader from '@/components/OssUploader.vue'
+import { useOssUpload } from '@/composables/useOssUpload'
 
 const props = defineProps<{ templateId: string }>()
 const store = usePortfolioStore(props.templateId)
@@ -12,6 +14,7 @@ const addWork = () => {
     category: '分类',
     cover: '',
     videoUrl: '',
+    images: [],
     description: '',
     year: String(new Date().getFullYear()),
     tags: [],
@@ -31,6 +34,41 @@ const setTags = (i: number, val: string) => {
     .split(/[、,，]/)
     .map((s) => s.trim())
     .filter(Boolean)
+}
+
+// —— 图集多图上传(面板级单实例,逐个文件顺序上传) ——
+const galleryInput = ref<HTMLInputElement | null>(null)
+/** 正在为第几个作品上传图集(进度/错误提示定位用) */
+const galleryWorkIndex = ref(-1)
+const { uploading, progress, error, upload } = useOssUpload('image')
+
+const pickImages = (i: number) => {
+  error.value = ''
+  galleryWorkIndex.value = i
+  galleryInput.value?.click()
+}
+
+const onGalleryChange = async (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const files = Array.from(input.files ?? [])
+  // 允许连续选择同一批文件重新上传
+  input.value = ''
+  const i = galleryWorkIndex.value
+  if (!files.length || i < 0 || !store.works[i]) {
+    galleryWorkIndex.value = -1
+    return
+  }
+  const work = store.works[i]
+  work.images = work.images ?? []
+  for (const file of files) {
+    const url = await upload(file)
+    if (url) work.images.push(url)
+  }
+  galleryWorkIndex.value = -1
+}
+
+const removeImage = (i: number, j: number) => {
+  store.works[i].images?.splice(j, 1)
 }
 </script>
 
@@ -52,11 +90,29 @@ const setTags = (i: number, val: string) => {
           <label class="ef-field"><span>分类</span><input v-model="work.category" class="ef-input" type="text" /></label>
         </div>
         <div class="ef-field">
-          <span>封面图（上传或粘贴 URL）</span>
+          <span>封面图（上传或粘贴 URL，无封面时取图集第一张）</span>
           <OssUploader v-model="work.cover" type="image" />
         </div>
         <div class="ef-field">
-          <span>作品视频（可选，有视频时作品卡优先播放视频）</span>
+          <span>图集（可上传多张，详情弹窗中滑动浏览）</span>
+          <div class="ef-gallery">
+            <div v-for="(img, j) in work.images || []" :key="img + j" class="ef-gallery-item">
+              <img :src="img" alt="图集图片" />
+              <button class="ef-gallery-remove" type="button" title="删除" @click="removeImage(i, j)">✕</button>
+            </div>
+            <button
+              class="ef-gallery-add"
+              type="button"
+              :disabled="uploading && galleryWorkIndex === i"
+              @click="pickImages(i)"
+            >
+              {{ uploading && galleryWorkIndex === i ? `上传中 ${progress}%` : '+ 添加图片' }}
+            </button>
+          </div>
+          <p v-if="error && galleryWorkIndex === i" class="ef-gallery-error">{{ error }}</p>
+        </div>
+        <div class="ef-field">
+          <span>作品视频（可选，单个，详情弹窗优先播放视频）</span>
           <OssUploader v-model="work.videoUrl" type="video" />
         </div>
         <label class="ef-field"><span>描述</span><textarea v-model="work.description" class="ef-textarea"></textarea></label>
@@ -75,5 +131,7 @@ const setTags = (i: number, val: string) => {
     </details>
 
     <p v-if="!store.works.length" class="ef-empty">暂无作品，点击右上角添加</p>
+
+    <input ref="galleryInput" type="file" hidden multiple accept="image/*" @change="onGalleryChange" />
   </div>
 </template>

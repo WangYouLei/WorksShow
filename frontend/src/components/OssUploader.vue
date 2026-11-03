@@ -11,8 +11,8 @@ import { useOssUpload } from '@/composables/useOssUpload'
  */
 const props = withDefaults(
   defineProps<{
-    /** 当前 URL(双向绑定,上传成功后回填) */
-    modelValue: string
+    /** 当前 URL(双向绑定,上传成功后回填;兼容接口返回的 null) */
+    modelValue?: string | null
     /** 媒体类型:image-图片 video-视频 */
     type: 'image' | 'video'
     /** 是否显示 URL 手填输入框(默认显示;头像等场景可关闭) */
@@ -68,7 +68,7 @@ const clear = () => {
     <div class="oss-row">
       <input
         v-if="showUrlInput"
-        :value="modelValue"
+        :value="modelValue ?? ''"
         class="oss-input"
         type="text"
         :placeholder="`粘贴 URL 或点击${buttonTextResolved}`"

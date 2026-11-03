@@ -14,18 +14,19 @@ spring:
   # 届时密钥/凭据仅从环境变量读取,缺失将启动失败(fail-fast)
   profiles:
     default: dev
-  # Redis 配置 - 用于 token 黑名单存储
-  redis:
-    host: ${REDIS_HOST:localhost}
-    port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:}
-    database: 0
-    lettuce:
-      pool:
-        max-active: 8
-        max-idle: 8
-        min-idle: 0
-        max-wait: -1ms
+  # Redis 配置 - 用于 token 黑名单存储(Spring Boot 3 前缀为 spring.data.redis)
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      # password: ${REDIS_PASSWORD:}
+      database: 0
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1
   # 数据源配置 - 请根据本地 MySQL 实际情况修改 username / password
   # 凭据仅从环境变量注入(dev profile 提供本地开发默认值),不随源码泄漏生产凭据
   datasource:
@@ -112,7 +113,7 @@ edgeone:
 # 密钥仅从环境变量 AI_API_KEY 注入;dev profile 下回落到本地环境变量
 ai:
   base-url: ${AI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
-  api-key: ${AI_API_KEY:}
+  api-key: ${Spring_ai_alibaba}
   model: ${AI_MODEL:qwen-plus}
   max-tokens: ${AI_MAX_TOKENS:1500}
   temperature: ${AI_TEMPERATURE:0.3}
@@ -128,16 +129,16 @@ ai:
 # AK/SK 仅从环境变量 OSS_ACCESS_KEY_ID / OSS_ACCESS_KEY_SECRET 注入;
 # 凭据为空时应用启动失败(fail-fast,与 JWT_SECRET 同策略,给出明确提示)
 oss:
-  endpoint: ${OSS_ENDPOINT:https://oss-cn-hangzhou.aliyuncs.com}
-  bucket: ${OSS_BUCKET:worksshow-assets}
-  access-key-id: ${OSS_ACCESS_KEY_ID:}
-  access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+  endpoint: https://oss-cn-hangzhou.aliyuncs.com
+  bucket: worksshow-assets
+  access-key-id: ${AccessKey_ID}
+  access-key-secret: ${AccessKey_Secret}
   # 对象根目录(objectKey 前缀,最终形如 uploads/{userId}/images/{uuid}.jpg)
-  dir: ${OSS_DIR:uploads}
+  dir: uploads
   # 预签名上传 URL 有效期(秒)
-  upload-url-expire-seconds: ${OSS_UPLOAD_URL_EXPIRE_SECONDS:600}
+  upload-url-expire-seconds: 600
   # 每用户每日上传签名次数上限(防刷签名写满 Bucket)
-  daily-limit: ${OSS_DAILY_LIMIT:200}
+  daily-limit: 200
 
 # 本服务器部署配置(简历 HTML 落盘并由本服务公开提供访问)
 local-deploy:
