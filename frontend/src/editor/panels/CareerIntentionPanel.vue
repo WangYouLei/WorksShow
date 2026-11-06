@@ -8,11 +8,10 @@ import type { CareerIntention } from '@/api/career'
  * <p>
  * 数据为用户级别(不绑定具体模板/简历),独立于 usePortfolioStore。
  * - 挂载时从服务端拉取,有则填充,无则使用默认空值
- * - noSave=false(设置页):深度 watch + 800ms 防抖,自动调用 PUT /career-intention upsert
- * - noSave=true(编辑器):仅加载展示,不自动保存
+ * - 深度 watch + 800ms 防抖,自动调用 PUT /career-intention upsert;
+ *   也可点击"保存"按钮立即保存(失败时在状态行显示原因)
  */
 
-const props = defineProps<{ noSave?: boolean }>()
 const defaultData = (): CareerIntention => ({
   jobStatus: 0,
   expectedPosition: '',
@@ -41,6 +40,10 @@ const jobStatusOptions = [
   { value: 0, label: '离职-随时到岗' },
   { value: 1, label: '在职-暂未到岗' },
   { value: 2, label: '在职-月内到岗' },
+  { value: 3, label: '离校-随时到岗' },
+  { value: 4, label: '在校-暂不考虑' },
+  { value: 5, label: '在校-考虑机会' },
+  { value: 6, label: '在校-月内到岗' },
 ]
 
 // 工作性质选项
@@ -95,6 +98,8 @@ const save = async () => {
     await saveCareerIntention(form)
     lastSaved.value = new Date().toLocaleTimeString()
   } catch (e) {
+    // 保存失败必须在界面显示原因(如后端校验拒绝),静默会让用户误以为已保存
+    saveError.value = (e as Error).message || '保存失败,请重试'
     console.error('[career] 保存求职意向失败', e)
   } finally {
     saving.value = false
@@ -111,13 +116,12 @@ watch(
   },
 )
 
-// 深度监听,800ms 防抖保存(noSave 模式下跳过)
+// 深度监听,800ms 防抖保存
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 watch(
   form,
   () => {
     if (loading.value) return
-    if (props.noSave) return
     if (saveTimer) clearTimeout(saveTimer)
     saveTimer = setTimeout(save, 800)
   },
@@ -187,6 +191,9 @@ watch(
       </div>
 
       <div class="career-status">
+        <button class="career-save-btn" type="button" :disabled="saving" @click="save">
+          {{ saving ? '保存中…' : '保存' }}
+        </button>
         <span v-if="saveError" class="status-error">{{ saveError }}</span>
         <span v-else-if="saving" class="status-saving">保存中…</span>
         <span v-else-if="lastSaved" class="status-saved">已保存 · {{ lastSaved }}</span>
@@ -198,11 +205,27 @@ watch(
 
 <style scoped>
 .career-status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
   margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid rgba(212, 165, 116, 0.1);
   font-size: 12px;
-  text-align: right;
+}
+.career-save-btn {
+  padding: 5px 14px;
+  font-size: 12px;
+  color: #0a0a0f;
+  background: #d4a574;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.career-save-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 .status-saved {
   color: rgba(212, 165, 116, 0.6);

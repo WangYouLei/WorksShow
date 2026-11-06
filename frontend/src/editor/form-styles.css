@@ -127,6 +127,21 @@
   color: rgba(245, 241, 232, 0.4);
   flex-shrink: 0;
 }
+/* summary 右侧组:元信息 + 展开方向箭头(展开时旋转 180° 提示可点击收起) */
+.ef-item-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.ef-item-arrow {
+  color: rgba(245, 241, 232, 0.4);
+  transition: transform 0.2s ease;
+}
+.ef-item[open] > summary .ef-item-arrow {
+  color: #d4a574;
+  transform: rotate(180deg);
+}
 .ef-item-body {
   margin-top: 14px;
   padding-top: 14px;

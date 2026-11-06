@@ -4,8 +4,14 @@
  * - 视频作为第一帧,图集图片随后(全部帧都在静态 DOM 中,靠 display 切换)
  * - 箭头切换(阻止冒泡,避免误触卡片打开弹窗),计数联动
  * - 图片帧自动轮播,视频帧与悬停时暂停
+ * 另含灯箱接线(LIGHTBOX_WIRING_JS):.wm-zoom 点击放大当前图片,
+ * 覆盖 WorkMedia 轮播帧与 WorkModal 图集主图两种场景。
  */
+import { LIGHTBOX_WIRING_JS } from '@/utils/lightbox'
+
 export const MEDIA_CAROUSEL_JS = `
+  ${LIGHTBOX_WIRING_JS}
+
   document.querySelectorAll('[data-media]').forEach(function(wm){
     var slides = Array.prototype.slice.call(wm.querySelectorAll('.wm-item'));
     if (slides.length < 2) return;

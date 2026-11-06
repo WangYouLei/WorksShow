@@ -1,8 +1,14 @@
 <script setup lang="ts">
+import { ChevronDown } from 'lucide-vue-next'
 import { usePortfolioStore } from '@/composables/usePortfolioStore'
 
 const props = defineProps<{ templateId: string }>()
 const store = usePortfolioStore(props.templateId)
+
+/** 收起当前折叠项 */
+const collapseItem = (e: MouseEvent) => {
+  ;(e.currentTarget as HTMLElement).closest('details')?.removeAttribute('open')
+}
 
 const addExp = () => {
   store.experiences.unshift({
@@ -33,7 +39,10 @@ const move = (i: number, dir: -1 | 1) => {
     <details v-for="(exp, i) in store.experiences" :key="exp.id" class="ef-item">
       <summary>
         <span class="ef-item-title">{{ exp.title || '未命名' }}</span>
-        <span class="ef-item-meta">{{ exp.period }}</span>
+        <span class="ef-item-side">
+          <span class="ef-item-meta">{{ exp.period }}</span>
+          <ChevronDown class="ef-item-arrow" :size="14" />
+        </span>
       </summary>
       <div class="ef-item-body">
         <div class="ef-row-two">
@@ -54,6 +63,7 @@ const move = (i: number, dir: -1 | 1) => {
           <button class="ef-move-btn" type="button" @click="move(i, -1)">上移</button>
           <button class="ef-move-btn" type="button" @click="move(i, 1)">下移</button>
           <button class="ef-remove-btn" type="button" @click="removeExp(i)">删除</button>
+          <button class="ef-move-btn" type="button" @click="collapseItem">收起</button>
         </div>
       </div>
     </details>

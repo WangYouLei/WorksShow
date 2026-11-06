@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, watch, ref, nextTick, onUnmounted } from 'vue'
-import { X, ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { X, ArrowUpRight, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-vue-next'
 import type { Work } from '@/data/types'
 import { safeUrl } from '@/utils/safeUrl'
+import { openLightbox } from '@/utils/lightbox'
 
 const props = defineProps<{ work: Work | null }>()
 const emit = defineEmits<{ close: [] }>()
@@ -57,6 +58,12 @@ const step = (dir: 1 | -1) => {
   if (n) setActive((activeIndex.value + dir + n) % n)
 }
 
+/** 放大查看当前图片(导出页由 runtime 委托接管,类名 wm-zoom 不可改) */
+const zoom = () => {
+  const src = gallery.value[activeIndex.value]
+  if (src) openLightbox(src)
+}
+
 // 触屏左右滑动切换(位移超过 40px 判定为滑动)
 let touchX = 0
 const onTouchStart = (e: TouchEvent) => {
@@ -98,6 +105,9 @@ const onTouchEnd = (e: TouchEvent) => {
                 </button>
                 <span class="gallery-counter font-mono">{{ activeIndex + 1 }} / {{ gallery.length }}</span>
               </template>
+              <button class="wm-zoom gallery-zoom" type="button" aria-label="放大查看" @click="zoom">
+                <Maximize2 :size="15" :stroke-width="1.5" />
+              </button>
             </div>
             <div v-if="gallery.length > 1" class="gallery-thumbs">
               <button
@@ -114,7 +124,7 @@ const onTouchEnd = (e: TouchEvent) => {
               </button>
             </div>
           </div>
-          <span class="modal-year">{{ work.year }}</span>
+          <span v-if="work.year" class="modal-year">{{ work.year }}</span>
         </div>
 
         <div class="modal-body">
@@ -320,6 +330,32 @@ const onTouchEnd = (e: TouchEvent) => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* 放大按钮:与图集缩略图条贴合,位于主图右下角 */
+.gallery-zoom {
+  position: absolute;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--text);
+  background: rgba(10, 10, 15, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: zoom-in;
+  opacity: 0.8;
+  transition: all var(--dur) var(--ease);
+}
+
+.gallery-zoom:hover {
+  opacity: 1;
+  color: var(--ink-black);
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 .modal-year {

@@ -41,8 +41,7 @@ const emit = defineEmits<{ select: [work: Work] }>()
         >
           <div v-if="work.cover || work.videoUrl || work.images?.length" class="work-cover">
             <WorkMedia :work="work" />
-            <span v-if="(work.images?.length ?? 0) > 1" class="work-img-count font-mono">{{ work.images!.length }} 图</span>
-            <span class="work-year font-mono">{{ work.year }}</span>
+            <span v-if="work.year" class="work-year font-mono">{{ work.year }}</span>
             <span class="work-arrow">
               <ArrowUpRight :size="20" :stroke-width="1.5" />
             </span>
@@ -51,7 +50,8 @@ const emit = defineEmits<{ select: [work: Work] }>()
           <div class="work-info">
             <span class="work-category font-mono">{{ work.category }}</span>
             <h3 class="work-title font-serif">{{ work.title }}</h3>
-            <div class="work-tags">
+            <p v-if="work.description" class="work-desc">{{ work.description }}</p>
+            <div v-if="work.tags.length" class="work-tags">
               <span v-for="tag in work.tags.slice(0, 3)" :key="tag" class="work-tag">{{ tag }}</span>
             </div>
           </div>
@@ -127,20 +127,6 @@ const emit = defineEmits<{ select: [work: Work] }>()
   backdrop-filter: blur(4px);
 }
 
-/* 图集张数角标(多图作品提示可进入详情滑动浏览) */
-.work-img-count {
-  position: absolute;
-  bottom: 1rem;
-  right: 1rem;
-  font-size: var(--fs-tiny);
-  letter-spacing: 0.1em;
-  color: var(--moon-white);
-  background: rgba(10, 10, 15, 0.7);
-  padding: 0.3rem 0.6rem;
-  border-radius: var(--radius-sm);
-  backdrop-filter: blur(4px);
-}
-
 .work-arrow {
   position: absolute;
   top: 1rem;
@@ -184,6 +170,18 @@ const emit = defineEmits<{ select: [work: Work] }>()
 
 .work-card:hover .work-title {
   color: var(--accent);
+}
+
+/* 卡片描述摘要:最多两行,超出省略(完整描述在详情弹窗) */
+.work-desc {
+  font-size: var(--fs-small);
+  color: var(--text-dim);
+  line-height: 1.7;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .work-tags {

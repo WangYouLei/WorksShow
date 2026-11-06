@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ChevronsLeft, ChevronsRight, Sparkles } from 'lucide-vue-next'
 import { getTemplateMeta } from '@/templates/registry'
-import { usePortfolioStore, resetPortfolioStore, getSaveStatus, saveNow, setProfileLocked } from '@/composables/usePortfolioStore'
+import { usePortfolioStore, resetPortfolioStore, getSaveStatus, saveNow } from '@/composables/usePortfolioStore'
 import { useThemeStore } from '@/composables/useThemeStore'
 import { downloadPortfolioHtml } from '@/composables/useExporter'
 import DeployDialog from '@/components/DeployDialog.vue'
@@ -80,9 +80,7 @@ const onExport = async () => {
   }
 }
 
-// 编辑器中 profile 修改不持久化(仅在设置页保存),求职意向同理
-onMounted(() => setProfileLocked(true))
-onUnmounted(() => setProfileLocked(false))
+// 编辑器中 profile(基本信息/统计/社交)修改与其他区块一致:防抖自动保存到服务端
 </script>
 
 <template>
@@ -136,7 +134,7 @@ onUnmounted(() => setProfileLocked(false))
           <WorksPanel v-else-if="activeTab === 'works'" :template-id="props.templateId" />
           <SkillsPanel v-else-if="activeTab === 'skills'" :template-id="props.templateId" />
           <ExperiencesPanel v-else-if="activeTab === 'experiences'" :template-id="props.templateId" />
-          <CareerIntentionPanel v-else-if="activeTab === 'career'" :no-save="true" />
+          <CareerIntentionPanel v-else-if="activeTab === 'career'" />
           <ThemePanel v-else :template-id="props.templateId" />
         </div>
       </aside>

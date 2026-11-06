@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Maximize2 } from 'lucide-vue-next'
 import type { Work } from '@/data/types'
+import { openLightbox } from '@/utils/lightbox'
 
 const props = defineProps<{ work: Work }>()
 
@@ -27,6 +28,11 @@ const current = computed(() => items.value[index.value])
 const step = (dir: 1 | -1) => {
   const n = items.value.length
   if (n > 1) index.value = (index.value + dir + n) % n
+}
+
+/** 放大查看当前图片帧(视频帧不放大) */
+const zoom = () => {
+  if (current.value?.kind === 'image') openLightbox(current.value.src)
 }
 
 // 图片帧自动轮播;视频帧与悬停时暂停(视频留给用户看,箭头随时可切)
@@ -73,6 +79,17 @@ onBeforeUnmount(() => clearInterval(timer))
       </button>
       <span class="wm-counter font-mono">{{ index + 1 }} / {{ items.length }}</span>
     </template>
+
+    <!-- 放大查看当前图片(导出页由 runtime 委托接管,类名 wm-zoom 不可改) -->
+    <button
+      v-if="current?.kind === 'image'"
+      class="wm-zoom"
+      type="button"
+      aria-label="放大查看"
+      @click.stop="zoom"
+    >
+      <Maximize2 :size="14" :stroke-width="1.5" />
+    </button>
   </div>
 </template>
 
@@ -131,5 +148,28 @@ onBeforeUnmount(() => clearInterval(timer))
   padding: 0.25rem 0.6rem;
   border-radius: var(--radius-sm, 4px);
   backdrop-filter: blur(4px);
+}
+.wm-zoom {
+  position: absolute;
+  bottom: 0.6rem;
+  right: 0.6rem;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--text, #f5f1e8);
+  background: rgba(10, 10, 15, 0.6);
+  border: 1px solid var(--border, rgba(245, 241, 232, 0.2));
+  border-radius: 50%;
+  cursor: zoom-in;
+  opacity: 0.75;
+  transition: all 0.25s ease;
+}
+.wm-zoom:hover {
+  opacity: 1;
+  color: var(--ink-black, #0a0a0f);
+  background: var(--accent, #d4a574);
+  border-color: var(--accent, #d4a574);
 }
 </style>

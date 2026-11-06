@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { ChevronDown } from 'lucide-vue-next'
 import { usePortfolioStore } from '@/composables/usePortfolioStore'
 import OssUploader from '@/components/OssUploader.vue'
 import { useOssUpload } from '@/composables/useOssUpload'
@@ -70,6 +71,11 @@ const onGalleryChange = async (e: Event) => {
 const removeImage = (i: number, j: number) => {
   store.works[i].images?.splice(j, 1)
 }
+
+/** 收起当前折叠项 */
+const collapseItem = (e: MouseEvent) => {
+  ;(e.currentTarget as HTMLElement).closest('details')?.removeAttribute('open')
+}
 </script>
 
 <template>
@@ -82,7 +88,10 @@ const removeImage = (i: number, j: number) => {
     <details v-for="(work, i) in store.works" :key="work.id" class="ef-item">
       <summary>
         <span class="ef-item-title">{{ work.title || '未命名' }}</span>
-        <span class="ef-item-meta">{{ work.category }} · {{ work.year }}</span>
+        <span class="ef-item-side">
+          <span class="ef-item-meta">{{ work.category }} · {{ work.year }}</span>
+          <ChevronDown class="ef-item-arrow" :size="14" />
+        </span>
       </summary>
       <div class="ef-item-body">
         <div class="ef-row-two">
@@ -126,6 +135,7 @@ const removeImage = (i: number, j: number) => {
           <button class="ef-move-btn" type="button" @click="move(i, -1)">上移</button>
           <button class="ef-move-btn" type="button" @click="move(i, 1)">下移</button>
           <button class="ef-remove-btn" type="button" @click="removeWork(i)">删除</button>
+          <button class="ef-move-btn" type="button" @click="collapseItem">收起</button>
         </div>
       </div>
     </details>

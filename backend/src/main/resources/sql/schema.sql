@@ -211,7 +211,7 @@ CREATE TABLE IF NOT EXISTS `user_skill` (
 CREATE TABLE IF NOT EXISTS `career_intention` (
     `id`                BIGINT       NOT NULL AUTO_INCREMENT              COMMENT '主键ID',
     `user_id`           BIGINT       NOT NULL                            COMMENT '所属用户ID(关联 user.id)',
-    `job_status`        TINYINT      DEFAULT 0                          COMMENT '求职状态:0-离职正在找 1-在职考虑机会 2-在职暂不考虑',
+    `job_status`        TINYINT      DEFAULT 0                          COMMENT '求职状态:0-离职随时到岗 1-在职暂未到岗 2-在职月内到岗 3-离校随时到岗 4-在校暂不考虑 5-在校考虑机会 6-在校月内到岗',
     `expected_position` VARCHAR(100)          DEFAULT NULL               COMMENT '期望职位(如"前端开发工程师")',
     `position_type`     VARCHAR(50)           DEFAULT NULL               COMMENT '职位类别(技术/产品/设计/运营等)',
     `expected_industry` JSON                  DEFAULT NULL               COMMENT '期望行业数组 ["互联网","金融"]',

@@ -19,7 +19,7 @@ public class CareerIntentionVO {
     /** 主键ID */
     private Long id;
 
-    /** 求职状态:0-离职正在找 1-在职考虑机会 2-在职暂不考虑 */
+    /** 求职状态:0-离职随时到岗 1-在职暂未到岗 2-在职月内到岗 3-离校随时到岗 4-在校暂不考虑 5-在校考虑机会 6-在校月内到岗 */
     private Integer jobStatus;
 
     /** 期望职位(如"前端开发工程师") */

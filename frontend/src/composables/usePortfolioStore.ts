@@ -52,11 +52,6 @@ const ensuredTemplates = new Set<string>()
  *  触发保存属于冗余回写,且加载前用户可能已输入内容会被判定为"新数据"提交 */
 let applyingFromServer = false
 
-/** profile 锁定标志:锁定时编辑器中的 profile 修改不会保存到服务端 */
-let profileLocked = false
-/** profile 快照:锁定时保存使用此快照而非当前 data.profile,解锁时恢复 */
-let profileSnapshot: Profile | null = null
-
 function clone<T>(v: T): T {
   return JSON.parse(JSON.stringify(v))
 }
@@ -189,8 +184,6 @@ async function loadFromServer() {
       applyingFromServer = false
     }
     s.loadError = false
-    // 更新 profile 快照(用于编辑器锁定时恢复)
-    profileSnapshot = clone(normalized.profile)
   } catch (e) {
     console.warn('[store] 从服务端加载用户档案失败,使用默认数据(保存将被阻止直到加载成功)', e)
     s.loadError = true
@@ -253,20 +246,14 @@ async function saveToServer() {
   try {
     // 保存时不传 id(后端整体替换,会重新分配 id)
     const { data } = s
-    // profile 锁定时使用快照(编辑器中的 profile 修改不持久化)
-    const profileToSave = profileLocked && profileSnapshot ? profileSnapshot : data.profile
     await saveUserProfile({
-      profile: profileToSave,
+      profile: data.profile,
       works: data.works.map(({ id: _id, ...rest }) => rest),
       experiences: data.experiences.map(({ id: _id, ...rest }) => rest),
       skills: data.skills.map(({ id: _id, ...rest }) => rest),
     })
     s.saveError = false
     s.lastSaved = Date.now()
-    // 未锁定时更新快照为当前 profile(设置页保存后快照同步)
-    if (!profileLocked) {
-      profileSnapshot = clone(data.profile)
-    }
   } catch (e) {
     s.saveError = true
     console.error('[store] 保存用户档案失败', e)
@@ -302,8 +289,6 @@ export function destroyPortfolioStore(): void {
   state = null
   portfolioIds = {}
   ensuredTemplates.clear()
-  profileLocked = false
-  profileSnapshot = null
 }
 
 /**
@@ -366,31 +351,6 @@ export async function saveNow(_templateId: string): Promise<void> {
     saveTimer = null
   }
   await saveToServer()
-}
-
-/**
- * 锁定/解锁 profile 持久化。
- * <p>
- * 编辑器使用:进入时锁定( profile 修改不保存到服务端,仅用于预览),
- * 离开时解锁并从快照恢复 profile(丢弃编辑器中的临时修改)。
- * 设置页不调用此函数(默认未锁定,修改会正常保存)。
- *
- * @param locked true=锁定(进入编辑器),false=解锁(离开编辑器)
- */
-export function setProfileLocked(locked: boolean): void {
-  if (locked) {
-    // 锁定时:如果数据已加载,拍下当前 profile 快照
-    if (state && state.loaded && !state.loadError && state.data.profile) {
-      profileSnapshot = clone(state.data.profile)
-    }
-    profileLocked = true
-  } else {
-    // 解锁时:从快照恢复 profile(丢弃编辑器中的临时修改)
-    if (state && profileSnapshot) {
-      state.data.profile = clone(profileSnapshot)
-    }
-    profileLocked = false
-  }
 }
 
 /**
